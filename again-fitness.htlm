@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Gain Fitness | Live Client Portal</title>
+    <style>
+        :root {
+            --primary: #f26522; 
+            --primary-hover: #d44d0e;
+            --gold: #dfba6b; 
+            --bg-dark: #0f0f11;
+            --bg-card: #18181c;
+            --bg-input: #232329;
+            --text-main: #ffffff;
+            --text-muted: #9fa0a6;
+            --border: #2e2e36;
+            --glow: 0 0 15px rgba(242, 101, 34, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+
+        header {
+            background-color: var(--bg-card);
+            border-bottom: 2px solid var(--primary);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--glow);
+        }
+
+        .brand-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        .brand-title span { color: var(--primary); }
+
+        .brand-slogan {
+            font-size: 0.75rem;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover { 
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background-color: #2a2a32;
+            color: #fff;
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background-color: #35353f; }
+
+        .btn-gold {
+            background-color: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+        }
+        .btn-gold:hover {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #bd2130; }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: 1px solid var(--primary);
+        }
+
+        .view-panel { display: none; }
+        .view-panel.active { display: block; }
+
+        .portal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        @media (max-width: 600px) { .portal-grid { grid-template-columns: 1fr; } }
+
+        .portal-card {
+            text-align: center;
+            padding: 3.5rem 2rem;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.25s ease;
+        }
+        .portal-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        .owner-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 900px) { .owner-layout { grid-template-columns: 1fr; } }
+
+        .member-sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            height: fit-content;
+        }
+
+        .member-item {
+            padding: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e1e24;
+        }
+        .member-item:hover { background: var(--bg-input); }
+        .member-item.active {
+            background: var(--bg-input);
+            border-left-color: var(--primary);
+        }
+
+        .member-code-badge {
+            font-family: monospace;
+            background: #0f0f11;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--gold);
+            font-weight: bold;
+        }
+
+        .row-entry {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+        .tab {
+            padding: 0.6rem 1.2rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .tab.active {
+            border-bottom-color: var(--primary);
+            color: #fff;
+        }
+
+        .sync-log {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #09090b;
+            border-top: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--gold);
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-container">
+            <div class="brand-title">A-Gain <span>Fitness</span></div>
+            <div class="brand-slogan">The commitment is ours. The Gain is yours.</div>
+        </div>
+        <div>
+            <button class="btn btn-secondary" onclick="resetToPortal()">Exit Portal</button>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- LOADING INDICATOR -->
+        <div id="loading-spinner" style="display:none; text-align: center; padding: 3rem;">
+            <h3 style="color:var(--primary)">⚡ Fetching Realtime Data Cloud Streams...</h3>
+        </div>
+
+        <!-- PORTAL SELECTION -->
+        <div id="portal-view" class="view-panel active">
+            <h2 style="text-align: center; margin-bottom: 0.25rem;">Management & Athlete Portal</h2>
+            <p style="text-align: center; color: var(--text-muted);">Select authorization sequence below</p>
+            <div class="portal-grid">
+                <div class="card portal-card" onclick="showView('owner-auth-view')">
+                    <h2 style="color: var(--primary);">Coach / Owner</h2>
+                    <p style="color: var(--text-muted); margin-top: 0.5rem;">Configure schedules, tweak macros, and sync direct links.</p>
+                </div>
+                <div class="card portal-card" onclick="showView('member-auth-view')">
+                    <h2 style="color: var(--gold);">Gym Member</h2>
+                    <p style="color: var(--text-muted); margin-top: 0.5rem;">Review your live tailored weekly workouts and diets.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- OWNER AUTH -->
+        <div id="owner-auth-view" class="view-panel">
+            <div class="card" style="max-width: 400px; margin: 0 auto;">
+                <h3>Owner Security PIN</h3>
+                <input type="password" id="owner-pin" placeholder="Default PIN is 1234">
+                <div style="display:flex; gap:0.5rem; margin-top: 1rem;">
+                    <button class="btn" style="flex:1;" onclick="verifyOwnerPin()">Verify</button>
+                    <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
+                </div>
+                <p id="owner-auth-error" style="color: var(--primary); margin-top: 1rem; display:none;">❌ Access Denied: Invalid PIN</p>
+            </div>
+        </div>
+
+        <!-- MEMBER AUTH -->
+        <div id="member-auth-view" class="view-panel">
+            <div class="card" style="max-width: 400px; margin: 0 auto;">
+                <h3>Access Training Plan</h3>
+                <input type="text" id="member-code" placeholder="e.g., AGN-4321" style="text-transform: uppercase;">
+                <div style="display:flex; gap:0.5rem; margin-top: 1rem;">
+                    <button class="btn" style="flex:1;" onclick="verifyMemberCode()">Load Profile</button>
+                    <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
+                </div>
+                <p id="member-auth-error" style="color: var(--primary); margin-top: 1rem; display:none;">❌ Athlete ID Not Found.</p>
+            </div>
+        </div>
+
+        <!-- OWNER DASHBOARD -->
+        <div id="owner-dashboard-view" class="view-panel">
+            <div class="owner-layout">
+                <div class="member-sidebar">
+                    <h3 style="margin-bottom: 1rem;">Athletes</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="new-member-name" placeholder="Full Name" style="margin-bottom:0.5rem;">
+                        <button class="btn" style="width: 100%;" onclick="addMember()">➕ Add Athlete</button>
+                    </div>
+                    <hr style="border-color: var(--border); margin-bottom:1rem;">
+                    <div id="member-roster-list"></div>
+                    
+                    <!-- NEW CONFIGURABLE OWNER PIN TOOL -->
+                    <hr style="border-color: var(--border); margin-top: 2rem; margin-bottom:1rem;">
+                    <h4 style="color: var(--gold); margin-bottom: 0.5rem; font-size:0.9rem;">⚙️ Admin Controls</h4>
+                    <button class="btn btn-secondary" style="width: 100%; font-size: 0.8rem;" onclick="promptChangePin()">Change Owner PIN</button>
+                </div>
+
+                <div id="management-workbench">
+                    <div class="card" style="text-align: center; color: var(--text-muted); padding: 4rem 2rem;">
+                        <h3>No Athlete Selected</h3>
+                        <p>Select a member from the left index timeline to manage goals.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- READ-ONLY MEMBER VIEW -->
+        <div id="member-display-view" class="view-panel">
+            <div id="member-display-content"></div>
+        </div>
+
+    </div>
+
+    <div class="sync-log">
+        <span>A-Gain Cloud Core Status: Active</span>
+        <span id="sync-status-text">Ready to stream modifications</span>
+    </div>
+
+    <script>
+        // Unique cloud key specific to your application instance
+        const CLOUD_URL = 'https://kvdb.io/MN98snv8p6G6s8x7H5Adfq/again_fitness_master_db';
+
+        const defaultWorkoutStructure = () => [
+            { day: "Monday", target: "Push Day Split", moves: [] },
+            { day: "Tuesday", target: "Pull Day Split", moves: [] },
+            { day: "Wednesday", target: "Legs Split Complex", moves: [] },
+            { day: "Thursday", target: "Shoulders / Weakpoint Triggers", moves: [] },
+            { day: "Friday", target: "Upper Body Hypertrophy Focus", moves: [] },
+            { day: "Saturday", target: "Engine Conditioning / Core", moves: [] }
+        ];
+
+        const defaultDietStructure = () => [
+            { meal: "Breakfast", items: "" },
+            { meal: "Pre-Workout Intake", items: "" },
+            { meal: "Post-Workout Intake", items: "" },
+            { meal: "Lunch Structure", items: "" },
+            { meal: "Dinner Structure", items: "" }
+        ];
+
+        // System defaults if database is completely blank
+        let appData = { 
+            ownerPin: "1234", 
+            members: {} 
+        };
+        
+        let currentSelectedMemberId = null;
+        let currentOwnerTab = 'workout';
+
+        window.onload = async function() {
+            document.getElementById('loading-spinner').style.display = 'block';
+            try {
+                const response = await fetch(CLOUD_URL);
+                if (response.ok) {
+                    const onlineData = await response.json();
+                    // Guarantee fields exist safely
+                    if(onlineData.ownerPin) appData.ownerPin = onlineData.ownerPin;
+                    if(onlineData.members) appData.members = onlineData.members;
+                }
+            } catch (e) {
+                console.log("Initializing database connection.");
+            }
+            document.getElementById('loading-spinner').style.display = 'none';
+
+            // Catch Direct Link query string params (?id=AGN-xxxx)
+            const urlParams = new URLSearchParams(window.location.search);
+            const directId = urlParams.get('id');
+            if (directId && appData.members[directId]) {
+                renderMemberDisplayView(directId);
+                showView('member-display-view');
+            }
+        };
+
+        function resetToPortal() {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            showView('portal-view');
+        }
+
+        async function syncData() {
+            const logText = document.getElementById('sync-status-text');
+            logText.innerText = "Syncing changes instantly to cloud...";
+            logText.style.color = "#ffcc00";
+
+            try {
+                await fetch(CLOUD_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(appData)
+                });
+                logText.innerText = `Changes securely synced to live cloud at ${new Date().toLocaleTimeString()}`;
+                logText.style.color = "#00ff00";
+            } catch(e) {
+                logText.innerText = "Sync warning. Retrying connection.";
+                logText.style.color = "#ff3333";
+            }
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            if(viewId === 'owner-dashboard-view') {
+                renderRoster();
+                renderWorkbench();
+            }
+        }
+
+        function verifyOwnerPin() {
+            if(document.getElementById('owner-pin').value === appData.ownerPin) {
+                showView('owner-dashboard-view');
+            } else {
+                document.getElementById('owner-auth-error').style.display = 'block';
+            }
+        }
+
+        function promptChangePin() {
+            const currentPinCheck = prompt("Verify your old Owner Security PIN:");
+            if (currentPinCheck !== appData.ownerPin) {
+                alert("Incorrect current PIN entry. Action blocked.");
+                return;
+            }
+            const newPin = prompt("Enter new master Owner Security PIN:");
+            if(newPin && newPin.trim().length > 0) {
+                appData.ownerPin = newPin.trim();
+                syncData();
+                alert(`Owner Security PIN successfully updated to: ${appData.ownerPin}`);
+            }
+        }
+
+        function verifyMemberCode() {
+            const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
+            if(appData.members[targetCode]) {
+                renderMemberDisplayView(targetCode);
+                showView('member-display-view');
+            } else {
+                document.getElementById('member-auth-error').style.display = 'block';
+            }
+        }
+
+        function renderRoster() {
+            const listContainer = document.getElementById('member-roster-list');
+            listContainer.innerHTML = '';
+            Object.values(appData.members).forEach(member => {
+                const div = document.createElement('div');
+                div.className = `member-item ${currentSelectedMemberId === member.id ? 'active' : ''}`;
+                div.onclick = () => {
+                    currentSelectedMemberId = member.id;
+                    renderRoster();
+                    renderWorkbench();
+                };
+                div.innerHTML = `<span>${member.name}</span><span class="member-code-badge">${member.id}</span>`;
+                listContainer.appendChild(div);
+            });
+        }
+
+        function addMember() {
+            const inputField = document.getElementById('new-member-name');
+            const name = inputField.value.trim();
+            if(!name) return;
+
+            const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
+            appData.members[newId] = {
+                id: newId,
+                name: name,
+                workout: defaultWorkoutStructure(),
+                diet: defaultDietStructure()
+            };
+            
+            inputField.value = '';
+            currentSelectedMemberId = newId;
+            syncData();
+            renderRoster();
+            renderWorkbench();
+        }
+
+        function deleteMember(memberId) {
+            if(confirm("Purge athlete parameters permanently from tracking index?")) {
+                delete appData.members[memberId];
+                currentSelectedMemberId = null;
+                syncData();
+                renderRoster();
+                renderWorkbench();
+            }
+        }
+
+        function copyShareLink(memberId) {
+            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
+            navigator.clipboard.writeText(directUrl).then(() => {
+                alert(`Live Update Link Copied!\n\nSend this via WhatsApp to your client. Anytime they click it, they see their newest plan instantly:\n\n${directUrl}`);
+            });
+        }
+
+        function renderWorkbench() {
+            const container = document.getElementById('management-workbench');
+            if(!currentSelectedMemberId || !appData.members[currentSelectedMemberId]) {
+                container.innerHTML = `<div class="card" style="text-align: center; color: var(--text-muted); padding: 4rem 2rem;"><h3>No Athlete Selected</h3></div>`;
+                return;
+            }
+
+            const member = appData.members[currentSelectedMemberId];
+            let html = `
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem; flex-wrap:wrap; gap:1rem;">
+                        <div>
+                            <h2>${member.name}</h2>
+                            <p style="color:var(--text-muted); font-size:0.9rem;">ID: <strong style="color:var(--gold); font-family:monospace;">${member.id}</strong></p>
+                        </div>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Live Link</button>
+                            <button class="btn btn-secondary btn-danger" onclick="deleteMember('${member.id}')">Remove Athlete</button>
+                        </div>
+                    </div>
+
+                    <div class="tabs">
+                        <div class="tab ${currentOwnerTab === 'workout' ? 'active' : ''}" onclick="switchTab('workout')">🏋️‍♂️ 6-Day Exercise Array</div>
+                        <div class="tab ${currentOwnerTab === 'diet' ? 'active' : ''}" onclick="switchTab('diet')">🥗 Macro & Meal Targets</div>
+                    </div>
+            `;
+
+            if(currentOwnerTab === 'workout') {
+                html += `<div id="workout-editor-zone">`;
+                member.workout.forEach((block, dayIndex) => {
+                    html += `
+                        <div style="background: var(--bg-input); padding:1rem; border-radius:8px; margin-bottom:1rem; border:1px solid var(--border)">
+                            <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                                <input type="text" value="${block.day}" placeholder="Day" style="width:120px; margin:0; font-weight:bold; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
+                                <input type="text" value="${block.target}" placeholder="Split Routine" style="margin:0;" onchange="updateDayTarget(${dayIndex}, this.value)">
+                            </div>
+                            <div style="padding-left:1rem; border-left: 2px dashed var(--primary);">
+                        `;
+                    block.moves.forEach((move, moveIndex) => {
+                        html += `
+                            <div class="row-entry">
+                                <input type="text" value="${move.name}" placeholder="Movement" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
+                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:70px;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
+                                <input type="text" value="${move.reps}" placeholder="Reps" style="width:90px;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
+                                <button class="btn btn-secondary" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
+                            </div>
+                        `;
+                    });
+                    html += `<button class="btn btn-secondary" style="font-size:0.8rem; padding:0.3rem 0.6rem;" onclick="addMove(${dayIndex})">➕ Add Exercise</button></div></div>`;
+                });
+                html += `</div>`;
+            } else {
+                html += `<div id="diet-editor-zone">`;
+                member.diet.forEach((meal, mealIndex) => {
+                    html += `
+                        <div class="row-entry" style="align-items: flex-start; gap:0.5rem; margin-bottom: 1rem;">
+                            <input type="text" value="${meal.meal}" style="width:200px; margin:0; font-weight:bold; color:var(--gold);" onchange="updateDietField(${mealIndex}, 'meal', this.value)">
+                            <textarea placeholder="Diet requirements..." style="margin:0; height:60px; resize:vertical;" onchange="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function switchTab(tabName) { currentOwnerTab = tabName; renderWorkbench(); }
+        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(); }
+        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(); }
+        function addMove(dIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); syncData(); renderWorkbench(); }
+        function updateMoveField(dIdx, mIdx, field, val) { appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; syncData(); }
+        function removeMove(dIdx, mIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.splice(mIdx, 1); syncData(); renderWorkbench(); }
+        function updateDietField(mIdx, field, val) { appData.members[currentSelectedMemberId].diet[mIdx][field] = val; syncData(); }
+
+        function renderMemberDisplayView(memberId) {
+            const member = appData.members[memberId];
+            const displayBox = document.getElementById('member-display-content');
+            let html = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <p style="text-transform:uppercase; letter-spacing:2px; color:var(--gold); font-size:0.85rem; font-weight:bold;">Custom Assigned Track Matrix</p>
+                    <h2 style="font-size:2.5rem; margin-top:0.25rem; font-weight:900; color:#fff;">${member.name}</h2>
+                </div>
+                <div class="card">
+                    <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.5rem; margin-bottom:1.5rem; color:var(--primary); font-size:1.4rem;">🏋️‍♂️ Daily Workout Schedule</h3>
+            `;
+            member.workout.forEach(day => {
+                html += `
+                    <div style="margin-bottom:1.5rem; background:#121215; padding:1.25rem; border-radius:8px; border-left: 4px solid var(--primary)">
+                        <h4 style="font-size:1.2rem; color:#fff;">${day.day} <span style="font-weight:400; font-size:1rem; color:var(--text-muted);">— ${day.target}</span></h4>
+                `;
+                if(day.moves.length === 0) {
+                    html += `<p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.5rem; font-style:italic;">Rest or Active Recovery Parameters.</p>`;
+                } else {
+                    html += `<table style="width:100%; margin-top:0.75rem; border-collapse:collapse; font-size:0.95rem;">
+                            <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border);"><th style="padding:0.5rem 0;">Movement</th><th style="padding:0.5rem 0; width:80px;">Sets</th><th style="padding:0.5rem 0; width:100px;">Reps</th></tr></thead><tbody>`;
+                    day.moves.forEach(move => {
+                        html += `<tr style="border-bottom:1px solid #1c1c22;"><td style="padding:0.6rem 0; font-weight:600; color:#fff;">${move.name || 'Structural Work'}</td><td style="padding:0.6rem 0; color:var(--gold); font-family:monospace; font-weight:bold;">${move.sets || '-'}</td><td style="padding:0.6rem 0; color:var(--text-muted); font-family:monospace;">${move.reps || '-'}</td></tr>`;
+                    });
+                    html += `</tbody></table>`;
+                }
+                html += `</div>`;
+            });
+
+            html += `</div><div class="card"><h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.5rem; margin-bottom:1.5rem; color:var(--gold); font-size:1.4rem;">🥗 Nutrition Plan</h3>`;
+            member.diet.forEach(meal => {
+                html += `<div style="display:flex; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid #232329; flex-wrap:wrap; gap:0.5rem;"><div style="font-weight:700; width:180px; color:var(--primary); text-transform:uppercase; font-size:0.85rem; padding-top:0.2rem;">${meal.meal}</div><div style="flex:1; color:var(--text-main); min-width:250px;">${meal.items ? meal.items.replace(/\n/g, '<br>') : 'Pending Log Input.'}</div></div>`;
+            });
+            html += `</div>`;
+            displayBox.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
