@@ -1,161 +1,238 @@
-Got it! I see the image now—the physical circular glowing sign at the gym. It has that **warm white backlighting glow (halo effect)**, a distinctive metallic/bronze-tinted circular texture, a clean white geometric backdrop line pattern, and that specific **bold orange branding** with the bodybuilder embedded in the large "A".
-
-I have redesigned the entire UI to match this physical interior look directly. I added a premium **circular backlit hero section that mirrors the physical gym sign**, clean backlighting halo effects (`box-shadow` matching the logo's look), subtle vertical wall-panel accent lines, and professional glassmorphism card overlays.
-
-The underlying compression logic, link copying, and local caching parameters are completely untouched.
-
-### 💻 The Branded High-End Version (`index.html`)
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A-Gain Fitness | Live Client Portal</title>
+    <title>A-Gain Fitness | Elite Client Portal</title>
     <style>
         :root {
             --primary: #f26522; 
-            --primary-hover: #d44d0e;
+            --primary-gradient: linear-gradient(135deg, #f26522, #d44d0e);
             --gold: #dfba6b; 
-            --bg-dark: #0a0a0c;
-            --bg-card: rgba(24, 24, 28, 0.75);
-            --bg-input: #1e1e24;
+            --gold-accent: rgba(223, 186, 107, 0.25);
+            --bg-wall: #0c0c0e;
+            --border-light: rgba(255, 255, 255, 0.08);
+            --glass-card: rgba(20, 20, 24, 0.75);
             --text-main: #ffffff;
-            --text-muted: #a0a5b0;
-            --border: #2c2c35;
-            --halo-glow: 0 0 35px rgba(242, 101, 34, 0.15), 0 0 60px rgba(255, 255, 255, 0.05);
-            --sign-glow: 0 0 40px rgba(220, 240, 255, 0.25);
+            --text-muted: #9ca3af;
+            
+            /* Replicating the distinct physical ice-blue halo ring glow from the picture */
+            --halo-led: 0 0 40px rgba(165, 215, 255, 0.25), 0 0 70px rgba(165, 215, 255, 0.12);
+            --orange-glow: 0 8px 25px rgba(242, 101, 34, 0.3);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
         }
 
         body {
-            background-color: var(--bg-dark);
-            /* Mimics the textured, lined wall behind the physical sign */
-            background-image: linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-            background-size: 24px 100%;
+            background-color: var(--bg-wall);
+            /* REPLICATING THE GYM'S WALL: Vertical wooden panels + Sharp intersecting gold veins */
+            background-image: 
+                linear-gradient(90deg, rgba(0, 0, 0, 0.85) 20px, transparent 20px),
+                linear-gradient(35deg, transparent 45%, var(--gold-accent) 45.5%, var(--gold-accent) 46%, transparent 46.5%),
+                linear-gradient(145deg, transparent 25%, var(--gold-accent) 25.3%, var(--gold-accent) 25.7%, transparent 26%),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 26px 100%, 100% 100%, 100% 100%, 26px 100%;
             color: var(--text-main);
-            line-height: 1.6;
-            padding-bottom: 80px;
+            min-height: 100vh;
+            padding-bottom: 90px;
+            overflow-x: hidden;
         }
 
         header {
-            background: rgba(15, 15, 18, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            padding: 1.2rem 2rem;
+            background: rgba(10, 10, 12, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-light);
+            padding: 1.2rem 2.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
-            z-index: 99;
-        }
-
-        .brand-container {
-            display: flex;
-            flex-direction: column;
+            z-index: 100;
         }
 
         .brand-title {
             font-size: 1.6rem;
             font-weight: 900;
             letter-spacing: -0.5px;
-            color: #fff;
             text-transform: uppercase;
         }
-
         .brand-title span { color: var(--primary); }
-
         .brand-slogan {
             font-size: 0.75rem;
-            color: #e2e8f0;
-            letter-spacing: 0.5px;
-            font-weight: 500;
-            opacity: 0.8;
+            color: #fff;
+            letter-spacing: 0.3px;
+            font-weight: 400;
+            opacity: 0.75;
         }
 
         .container {
             max-width: 1200px;
-            margin: 2.5rem auto;
+            margin: 3rem auto;
             padding: 0 1.5rem;
         }
 
-        /* Gym Sign Replicated Component */
-        .sign-hero-container {
+        /* ---------------------------------------------------- */
+        /* PHYSICAL SIGN REPLICATION (HOME SCREEN BRAND CENTER) */
+        /* ---------------------------------------------------- */
+        .portal-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .floating-gym-sign {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            /* Matte bronze/metallic circular plate texture */
+            background: radial-gradient(circle at 30% 30%, #403b36 0%, #262421 60%, #151412 100%);
+            border: 4px solid rgba(230, 240, 255, 0.9);
+            box-shadow: var(--halo-led), inset 0 4px 20px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-bottom: 3rem;
-            text-align: center;
-        }
-
-        .gym-circular-sign {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #282830, #16161a);
-            border: 3px solid #e2e8f0;
-            box-shadow: var(--sign-glow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             position: relative;
-            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .floating-gym-sign:hover {
+            transform: scale(1.03);
         }
 
-        /* SVG matching the layout of the physical badge */
-        .gym-sign-svg {
-            width: 80%;
-            height: 80%;
+        /* High precision vector matching image emblem geometric 'A' + athlete */
+        .sign-emblem-svg {
+            width: 75%;
+            height: 60%;
+            margin-top: -10px;
+        }
+
+        .sign-text-main {
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .sign-text-sub {
+            color: #ffffff;
+            font-size: 0.52rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 2px;
+            opacity: 0.9;
+        }
+
+        /* ---------------------------------------------------- */
+        /* INTERACTIVE INTERFACE COMPONENTS                    */
+        /* ---------------------------------------------------- */
+        .portal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            max-width: 900px;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        @media (max-width: 700px) { .portal-grid { grid-template-columns: 1fr; gap: 1.5rem; } }
+
+        .portal-card {
+            background: var(--glass-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 4.5rem 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+        }
+
+        /* Subtle indicator accent bars inside cards */
+        .portal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: transparent;
+            transition: background 0.3s;
+        }
+        .portal-card.owner-card::before { background: var(--primary); opacity: 0; }
+        .portal-card.member-card::before { background: var(--gold); opacity: 0; }
+
+        .portal-card:hover {
+            transform: translateY(-8px);
+            background: rgba(28, 28, 35, 0.85);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .portal-card.owner-card:hover { box-shadow: 0 20px 40px rgba(242, 101, 34, 0.12); }
+        .portal-card.owner-card:hover::before { opacity: 1; }
+        .portal-card.member-card:hover { box-shadow: 0 20px 40px rgba(223, 186, 107, 0.12); }
+        .portal-card.member-card:hover::before { opacity: 1; }
+
+        .portal-card h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.75rem;
         }
 
         .card {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
-            border-radius: 16px;
+            background: var(--glass-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
             padding: 2.5rem;
             margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
 
         .btn {
-            background: linear-gradient(135deg, var(--primary), #e05310);
+            background: var(--primary-gradient);
             color: white;
             border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
+            padding: 0.9rem 1.8rem;
+            border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
-            letter-spacing: 0.5px;
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
             transition: all 0.25s ease;
-            box-shadow: 0 4px 12px rgba(242, 101, 34, 0.2);
+            box-shadow: var(--orange-glow);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(242, 101, 34, 0.5);
         }
 
-        .btn:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(242, 101, 34, 0.4);
-        }
-        
         .btn-secondary {
-            background: #222227;
-            color: #e2e8f0;
-            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: #f3f4f6;
+            border: 1px solid var(--border-light);
             box-shadow: none;
         }
-        .btn-secondary:hover { 
-            background: #2c2c33;
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
             box-shadow: none;
+            transform: none;
         }
 
         .btn-gold {
@@ -166,132 +243,102 @@ The underlying compression logic, link copying, and local caching parameters are
         }
         .btn-gold:hover {
             background: var(--gold);
-            color: #0d0d11;
-            box-shadow: 0 4px 15px rgba(223, 186, 107, 0.3);
+            color: #0c0c0e;
+            box-shadow: 0 8px 25px rgba(223, 186, 107, 0.3);
         }
 
-        .btn-danger { background: #e53e3e; box-shadow: none; }
-        .btn-danger:hover { background: #c53030; box-shadow: none; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: none; }
+        .btn-danger:hover { background: #b91c1c; box-shadow: none; }
 
         input, select, textarea {
             width: 100%;
-            padding: 0.85rem 1rem;
-            background-color: var(--bg-input);
-            border: 1px solid var(--border);
+            padding: 0.95rem 1.2rem;
+            background-color: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-light);
             color: white;
-            border-radius: 8px;
-            margin-top: 0.4rem;
-            margin-bottom: 1.25rem;
-            font-size: 0.95rem;
-            transition: border-color 0.2s;
+            border-radius: 10px;
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            transition: all 0.25s;
         }
-
         input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
-            background-color: #24242b;
+            background-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(242, 101, 34, 0.15);
         }
 
         .view-panel { display: none; }
         .view-panel.active { display: block; }
 
-        .portal-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            max-width: 800px;
-            width: 100%;
-        }
-        @media (max-width: 650px) { .portal-grid { grid-template-columns: 1fr; gap: 1.25rem; } }
-
-        .portal-card {
-            text-align: center;
-            padding: 4rem 2rem;
-            cursor: pointer;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            background: rgba(20, 20, 24, 0.6);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .portal-card:hover {
-            transform: translateY(-6px);
-            border-color: var(--primary);
-            background: rgba(26, 26, 32, 0.8);
-            box-shadow: var(--halo-glow);
-        }
-
-        .portal-card h2 {
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-            font-weight: 800;
-        }
-
         .owner-layout {
             display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 2rem;
+            grid-template-columns: 350px 1fr;
+            gap: 2.5rem;
         }
         @media (max-width: 950px) { .owner-layout { grid-template-columns: 1fr; } }
 
         .member-sidebar {
-            background: rgba(20, 20, 24, 0.8);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 1.5rem;
+            background: rgba(15, 15, 18, 0.85);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 1.75rem;
             height: fit-content;
         }
 
         .member-item {
-            padding: 1rem;
-            border-radius: 8px;
+            padding: 1.1rem;
+            border-radius: 10px;
             cursor: pointer;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.75rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #18181d;
+            background: rgba(255, 255, 255, 0.02);
             border: 1px solid transparent;
             transition: all 0.2s;
         }
-        .member-item:hover { 
-            background: #212127; 
-            border-color: #3e3e4a;
+        .member-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
         }
         .member-item.active {
-            background: rgba(242, 101, 34, 0.1);
+            background: rgba(242, 101, 34, 0.08);
             border-color: var(--primary);
         }
 
         .member-code-badge {
             font-family: monospace;
             background: #000;
-            padding: 0.25rem 0.6rem;
+            padding: 0.3rem 0.7rem;
             border-radius: 6px;
             font-size: 0.8rem;
             color: var(--gold);
-            font-weight: bold;
-            border: 1px solid #222;
+            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
         .row-entry {
             display: flex;
-            gap: 0.6rem;
+            gap: 0.75rem;
             align-items: center;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.75rem;
         }
 
         .tabs {
             display: flex;
-            gap: 0.5rem;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 1.75rem;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 2rem;
         }
         .tab {
-            padding: 0.8rem 1.5rem;
+            padding: 0.9rem 1.6rem;
             cursor: pointer;
             border-bottom: 3px solid transparent;
             color: var(--text-muted);
             font-weight: 600;
+            font-size: 1rem;
             transition: all 0.2s;
         }
         .tab.active {
@@ -304,9 +351,9 @@ The underlying compression logic, link copying, and local caching parameters are
             bottom: 0;
             left: 0;
             right: 0;
-            background: #09090b;
-            border-top: 1px solid var(--border);
-            padding: 0.6rem 1.5rem;
+            background: #050507;
+            border-top: 1px solid var(--border-light);
+            padding: 0.75rem 2rem;
             font-family: monospace;
             font-size: 0.8rem;
             color: var(--gold);
@@ -332,44 +379,46 @@ The underlying compression logic, link copying, and local caching parameters are
 
         <!-- LOADING INDICATOR -->
         <div id="loading-spinner" style="display:none; text-align: center; padding: 3rem;">
-            <h3 style="color:var(--primary)">⚡ Syncing Live Cloud Database Engine...</h3>
+            <h3 style="color:var(--primary)">⚡ Processing Matrix System Memory Pipelines...</h3>
         </div>
 
         <!-- PORTAL SELECTION / HOME PAGE -->
         <div id="portal-view" class="view-panel active">
             
-            <!-- Mirroring the Physical Logo Sign From the Provided Image Asset -->
-            <div class="sign-hero-container">
-                <div class="gym-circular-sign">
-                    <!-- Clean inline vector matching the aesthetic of the gym wall emblem -->
-                    <svg class="gym-sign-svg" viewBox="0 0 100 100">
-                        <!-- Stylized Geometric "A" -->
-                        <path d="M50 15 L25 80 L38 80 L50 48 L62 80 L75 80 Z" fill="#bfa38a" />
-                        <path d="M35 62 L65 62 L60 52 L40 52 Z" fill="#a38973" />
-                        <!-- Bodybuilder Silhouette Accent Vector overlayed right side -->
-                        <g transform="translate(48,32) scale(0.38)" fill="#ffffff">
+            <div class="portal-hero">
+                <!-- Exact 1-to-1 physical replicating circular emblem module -->
+                <div class="floating-gym-sign">
+                    <svg class="sign-emblem-svg" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#d9beab" />
+                                <stop offset="50%" stop-color="#b89b86" />
+                                <stop offset="100%" stop-color="#8c725e" />
+                            </linearGradient>
+                        </defs>
+                        <!-- Geometric Sharp Multi-Line 'A' -->
+                        <path d="M50 12 L18 82 L32 82 L50 44 L68 82 L82 82 Z" fill="url(#bronzeGrad)" />
+                        <path d="M30 64 L70 64 L64 53 L36 53 Z" fill="#7a6352" />
+                        <!-- High Definition Bodybuilder Muscle Flex Silhouette overlapping right tier -->
+                        <g transform="translate(45,30) scale(0.42)" fill="#ffffff">
                             <path d="M26.2,19.3c1.1-1.9,2.8-3.3,4.8-4.1c1.5-0.6,3.1-0.9,4.8-0.7c2.5,0.3,4.6,1.8,5.7,4.1c0.8,1.6,0.9,3.5,0.3,5.2 c-0.5,1.5-1.6,2.8-3.1,3.5c-1.8,0.9-3.9,0.9-5.7,0.1C30.2,26.1,27.5,23.1,26.2,19.3z"/>
                             <path d="M59.3,25.3c-2.1-1.3-4.7-1.8-7.1-1.4c-2.3,0.4-4.5,1.6-6.1,3.4c-2.2,2.5-3.3,5.9-3.2,9.3c0.1,2.8,1,5.5,2.6,7.8 c2.2,3.1,5.7,5.1,9.5,5.3c1.9,0.1,3.8-0.3,5.6-1.1c3.1-1.4,5.4-4.2,6.3-7.5C68.1,36,65.1,29,59.3,25.3z"/>
                         </g>
                     </svg>
+                    <div class="sign-text-main">A-Gain Fitness</div>
+                    <div class="sign-text-sub">The commitment is ours. The Gain is yours.</div>
                 </div>
-                <h1 style="font-size: 2.5rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: -0.5px;">
-                    A-Gain <span style="color:var(--primary)">Fitness</span>
-                </h1>
-                <p style="color: var(--text-muted); max-width: 500px; margin-top: 0.5rem; font-size: 0.95rem;">
-                    The commitment is ours. The Gain is yours.
-                </p>
             </div>
 
             <div style="display: flex; justify-content: center;">
                 <div class="portal-grid">
-                    <div class="portal-card" onclick="showView('owner-auth-view')">
+                    <div class="portal-card owner-card" onclick="showView('owner-auth-view')">
                         <h2 style="color: var(--primary);">Coach / Owner</h2>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Configure schedules, tweak macros, and sync direct athlete access links.</p>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Access internal systems to configure athlete routines, change access pins, and copy synced distribution strings.</p>
                     </div>
-                    <div class="portal-card" onclick="showView('member-auth-view')">
+                    <div class="portal-card member-card" onclick="showView('member-auth-view')">
                         <h2 style="color: var(--gold);">Gym Member</h2>
-                        <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Review your live tailored weekly workout structures and nutrition targets.</p>
+                        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Check into your custom assigned training profile matrix, updated live by your personal trainer.</p>
                     </div>
                 </div>
             </div>
@@ -377,29 +426,29 @@ The underlying compression logic, link copying, and local caching parameters are
 
         <!-- OWNER AUTH -->
         <div id="owner-auth-view" class="view-panel">
-            <div class="card" style="max-width: 440px; margin: 4rem auto 0 auto;">
-                <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">Owner Security PIN</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Enter authorization token to modify schedules</p>
+            <div class="card" style="max-width: 460px; margin: 3rem auto 0 auto;">
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.25rem;">Owner Security Identity</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Provide administrative passcode sequence to continue</p>
                 <input type="password" id="owner-pin" placeholder="Default PIN is 1234">
                 <div style="display:flex; gap:0.75rem; margin-top: 0.5rem;">
-                    <button class="btn" style="flex:1;" onclick="verifyOwnerPin()">Verify Identity</button>
+                    <button class="btn" style="flex:1;" onclick="verifyOwnerPin()">Authorize</button>
                     <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
                 </div>
-                <p id="owner-auth-error" style="color: #e53e3e; margin-top: 1rem; display:none; font-weight: 600;">❌ Access Denied: Invalid Master PIN</p>
+                <p id="owner-auth-error" style="color: #ef4444; margin-top: 1.25rem; display:none; font-weight: 600;">❌ Access Blocked: Invalid Credentials</p>
             </div>
         </div>
 
         <!-- MEMBER AUTH -->
         <div id="member-auth-view" class="view-panel">
-            <div class="card" style="max-width: 440px; margin: 4rem auto 0 auto;">
-                <h3 style="font-size: 1.4rem; margin-bottom: 0.5rem;">Access Training Plan</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Enter your unique athlete assigned token</p>
+            <div class="card" style="max-width: 460px; margin: 3rem auto 0 auto;">
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.25rem;">Client Metric Portal</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Input unique identifier code supplied by management</p>
                 <input type="text" id="member-code" placeholder="e.g., AGN-4321" style="text-transform: uppercase;">
                 <div style="display:flex; gap:0.75rem; margin-top: 0.5rem;">
                     <button class="btn" style="flex:1;" onclick="verifyMemberCode()">Load Profile</button>
                     <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
                 </div>
-                <p id="member-auth-error" style="color: #e53e3e; margin-top: 1rem; display:none; font-weight: 600;">❌ Athlete ID Not Found.</p>
+                <p id="member-auth-error" style="color: #ef4444; margin-top: 1.25rem; display:none; font-weight: 600;">❌ Verification Failed: Code does not match database record</p>
             </div>
         </div>
 
@@ -407,23 +456,23 @@ The underlying compression logic, link copying, and local caching parameters are
         <div id="owner-dashboard-view" class="view-panel">
             <div class="owner-layout">
                 <div class="member-sidebar">
-                    <h3 style="margin-bottom: 1rem; font-size: 1.2rem; letter-spacing: 0.5px;">ATHLETES</h3>
-                    <div style="margin-bottom: 1.25rem;">
-                        <input type="text" id="new-member-name" placeholder="Full Name" style="margin-bottom:0.6rem;">
-                        <button class="btn" style="width: 100%;" onclick="addMember()">➕ Add Athlete</button>
+                    <h3 style="margin-bottom: 1.25rem; font-size: 1.1rem; letter-spacing: 1px; color:#fff; font-weight:800;">ATHLETE REGISTRY</h3>
+                    <div style="margin-bottom: 1.5rem;">
+                        <input type="text" id="new-member-name" placeholder="Full Name" style="margin-bottom:0.75rem;">
+                        <button class="btn" style="width: 100%;" onclick="addMember()">➕ Add Profile Record</button>
                     </div>
-                    <hr style="border-color: var(--border); margin-bottom:1.25rem;">
+                    <hr style="border-color: var(--border-light); margin-bottom:1.5rem;">
                     <div id="member-roster-list"></div>
                     
-                    <hr style="border-color: var(--border); margin-top: 2rem; margin-bottom:1rem;">
-                    <h4 style="color: var(--gold); margin-bottom: 0.6rem; font-size:0.9rem; font-weight: 700; letter-spacing: 0.5px;">⚙️ ADMIN CONTROLS</h4>
+                    <hr style="border-color: var(--border-light); margin-top: 2.5rem; margin-bottom:1rem;">
+                    <h4 style="color: var(--gold); margin-bottom: 0.6rem; font-size:0.85rem; font-weight: 800; letter-spacing: 0.5px;">SYSTEM MANAGEMENT</h4>
                     <button class="btn btn-secondary" style="width: 100%; font-size: 0.85rem;" onclick="promptChangePin()">Change Owner PIN</button>
                 </div>
 
                 <div id="management-workbench">
-                    <div class="card" style="text-align: center; color: var(--text-muted); padding: 5rem 2rem;">
-                        <h3>No Athlete Selected</h3>
-                        <p style="margin-top: 0.25rem;">Select a member from the roster array to manage tracking parameters.</p>
+                    <div class="card" style="text-align: center; color: var(--text-muted); padding: 6rem 2rem;">
+                        <h3>Active Node Selected: None</h3>
+                        <p style="margin-top: 0.5rem;">Select an indexed profile record from the tracking terminal list.</p>
                     </div>
                 </div>
             </div>
@@ -437,7 +486,7 @@ The underlying compression logic, link copying, and local caching parameters are
     </div>
 
     <div class="sync-log">
-        <span>A-Gain Matrix Node: Active</span>
+        <span>A-Gain System Terminal Connected</span>
         <span id="sync-status-text">Ready</span>
     </div>
 
@@ -603,27 +652,27 @@ The underlying compression logic, link copying, and local caching parameters are
         function renderWorkbench() {
             const container = document.getElementById('management-workbench');
             if(!currentSelectedMemberId || !appData.members[currentSelectedMemberId]) {
-                container.innerHTML = `<div class="card" style="text-align: center; color: var(--text-muted); padding: 5rem 2rem;"><h3>No Athlete Selected</h3></div>`;
+                container.innerHTML = `<div class="card" style="text-align: center; color: var(--text-muted); padding: 6rem 2rem;"><h3>No Athlete Selected</h3></div>`;
                 return;
             }
 
             const member = appData.members[currentSelectedMemberId];
             let html = `
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem; flex-wrap:wrap; gap:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
                         <div>
-                            <h2 style="font-size:1.8rem; font-weight:800;">${member.name}</h2>
-                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.2rem;">Athlete Link ID: <strong style="color:var(--gold); font-family:monospace;">${member.id}</strong></p>
+                            <h2 style="font-size:2rem; font-weight:800;">${member.name}</h2>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.25rem;">Athlete Matrix Token: <strong style="color:var(--gold); font-family:monospace;">${member.id}</strong></p>
                         </div>
-                        <div style="display:flex; gap:0.6rem;">
+                        <div style="display:flex; gap:0.75rem;">
                             <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Live Link</button>
                             <button class="btn btn-secondary btn-danger" onclick="deleteMember('${member.id}')">Remove Profile</button>
                         </div>
                     </div>
 
                     <div class="tabs">
-                        <div class="tab ${currentOwnerTab === 'workout' ? 'active' : ''}" onclick="switchTab('workout')">🏋️‍♂️ Workout Matrix</div>
-                        <div class="tab ${currentOwnerTab === 'diet' ? 'active' : ''}" onclick="switchTab('diet')">🥗 Nutrition Target</div>
+                        <div class="tab ${currentOwnerTab === 'workout' ? 'active' : ''}" onclick="switchTab('workout')">🏋️‍♂️ Workout Split Configuration</div>
+                        <div class="tab ${currentOwnerTab === 'diet' ? 'active' : ''}" onclick="switchTab('diet')">🥗 Meal Profile Matrix</div>
                     </div>
             `;
 
@@ -631,33 +680,33 @@ The underlying compression logic, link copying, and local caching parameters are
                 html += `<div id="workout-editor-zone">`;
                 member.workout.forEach((block, dayIndex) => {
                     html += `
-                        <div style="background: rgba(20,20,25,0.5); padding:1.25rem; border-radius:12px; margin-bottom:1.25rem; border:1px solid var(--border)">
-                            <div style="display:flex; gap:0.6rem; margin-bottom:1rem;">
-                                <input type="text" value="${block.day}" placeholder="Day" style="width:130px; margin:0; font-weight:bold; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value); syncData()">
+                        <div style="background: rgba(255,255,255,0.015); padding:1.5rem; border-radius:14px; margin-bottom:1.5rem; border:1px solid var(--border-light)">
+                            <div style="display:flex; gap:0.75rem; margin-bottom:1.25rem;">
+                                <input type="text" value="${block.day}" placeholder="Day" style="width:140px; margin:0; font-weight:bold; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value); syncData()">
                                 <input type="text" value="${block.target}" placeholder="Split Target Routine" style="margin:0;" onchange="updateDayTarget(${dayIndex}, this.value); syncData()">
                             </div>
-                            <div style="padding-left:1rem; border-left: 2px dashed var(--primary);">
+                            <div style="padding-left:1.25rem; border-left: 2px dashed var(--primary);">
                         `;
                     block.moves.forEach((move, moveIndex) => {
                         html += `
                             <div class="row-entry">
-                                <input type="text" value="${move.name}" placeholder="Movement/Exercise" style="margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value); syncData()">
-                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:80px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value); syncData()">
-                                <input type="text" value="${move.reps}" placeholder="Reps" style="width:100px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value); syncData()">
-                                <button class="btn btn-secondary" style="padding:0.7rem 1rem;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
+                                <input type="text" value="${move.name}" placeholder="Movement/Exercise Description" style="margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value); syncData()">
+                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value); syncData()">
+                                <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value); syncData()">
+                                <button class="btn btn-secondary" style="padding:0.9rem 1.2rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
                             </div>
                         `;
                     });
-                    html += `<button class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem; margin-top:0.5rem;" onclick="addMove(${dayIndex})">➕ Add Exercise Step</button></div></div>`;
+                    html += `<button class="btn btn-secondary" style="font-size:0.85rem; padding:0.5rem 1rem; margin-top:0.75rem;" onclick="addMove(${dayIndex})">➕ Add Exercise Slot</button></div></div>`;
                 });
                 html += `</div>`;
             } else {
                 html += `<div id="diet-editor-zone">`;
                 member.diet.forEach((meal, mealIndex) => {
                     html += `
-                        <div class="row-entry" style="align-items: flex-start; gap:0.75rem; margin-bottom: 1.25rem;">
-                            <input type="text" value="${meal.meal}" style="width:220px; margin:0; font-weight:bold; color:var(--gold);" onchange="updateDietField(${mealIndex}, 'meal', this.value); syncData()">
-                            <textarea placeholder="Specify dietary loadouts/macro split targets..." style="margin:0; height:70px; resize:vertical;" onchange="updateDietField(${mealIndex}, 'items', this.value); syncData()">${meal.items}</textarea>
+                        <div class="row-entry" style="align-items: flex-start; gap:1rem; margin-bottom: 1.5rem;">
+                            <input type="text" value="${meal.meal}" style="width:240px; margin:0; font-weight:bold; color:var(--gold);" onchange="updateDietField(${mealIndex}, 'meal', this.value); syncData()">
+                            <textarea placeholder="Map macro values and ingredient specifications..." style="margin:0; height:80px; resize:vertical;" onchange="updateDietField(${mealIndex}, 'items', this.value); syncData()">${meal.items}</textarea>
                         </div>
                     `;
                 });
@@ -679,34 +728,34 @@ The underlying compression logic, link copying, and local caching parameters are
             const member = appData.members[memberId];
             const displayBox = document.getElementById('member-display-content');
             let html = `
-                <div style="text-align: center; margin-bottom: 2.5rem;">
+                <div style="text-align: center; margin-bottom: 3rem;">
                     <p style="text-transform:uppercase; letter-spacing:2px; color:var(--gold); font-size:0.85rem; font-weight:bold;">Custom Assigned Track Matrix</p>
-                    <h2 style="font-size:2.5rem; margin-top:0.25rem; font-weight:900; color:#fff; text-transform: uppercase;">${member.name}</h2>
+                    <h2 style="font-size:2.8rem; margin-top:0.25rem; font-weight:900; color:#fff; text-transform: uppercase; letter-spacing:-0.5px;">${member.name}</h2>
                 </div>
                 <div class="card">
-                    <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.6rem; margin-bottom:1.5rem; color:var(--primary); font-size:1.4rem; font-weight:800;">🏋️‍♂️ DAILY WORKOUT SCHEDULE</h3>
+                    <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--primary); font-size:1.4rem; font-weight:900; letter-spacing:0.5px;">🏋️‍♂️ WORKOUT SPLIT SCHEDULING</h3>
             `;
             member.workout.forEach(day => {
                 html += `
-                    <div style="margin-bottom:1.5rem; background:rgba(15,15,20,0.6); padding:1.5rem; border-radius:12px; border-left: 4px solid var(--primary)">
-                        <h4 style="font-size:1.25rem; color:#fff; font-weight:700;">${day.day} <span style="font-weight:400; font-size:1.05rem; color:var(--text-muted);">— ${day.target}</span></h4>
+                    <div style="margin-bottom:1.75rem; background:rgba(0,0,0,0.4); padding:1.75rem; border-radius:14px; border-left: 5px solid var(--primary); border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light)">
+                        <h4 style="font-size:1.35rem; color:#fff; font-weight:800;">${day.day} <span style="font-weight:400; font-size:1.1rem; color:var(--text-muted);">— ${day.target}</span></h4>
                 `;
                 if(day.moves.length === 0) {
-                    html += `<p style="color:var(--text-muted); font-size:0.95rem; margin-top:0.5rem; font-style:italic;">Rest or Active Recovery Parameters.</p>`;
+                    html += `<p style="color:var(--text-muted); font-size:0.95rem; margin-top:0.6rem; font-style:italic;">Rest framework or Active Recovery protocol.</p>`;
                 } else {
-                    html += `<table style="width:100%; margin-top:1rem; border-collapse:collapse; font-size:0.95rem;">
-                            <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border);"><th style="padding:0.6rem 0;">Movement</th><th style="padding:0.6rem 0; width:90px;">Sets</th><th style="padding:0.6rem 0; width:110px;">Reps</th></tr></thead><tbody>`;
+                    html += `<table style="width:100%; margin-top:1.25rem; border-collapse:collapse; font-size:1rem;">
+                            <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border-light); font-size:0.9rem; text-transform:uppercase; letter-spacing:0.5px;"><th style="padding:0.75rem 0;">Movement Variant</th><th style="padding:0.75rem 0; width:100px;">Sets</th><th style="padding:0.75rem 0; width:130px;">Reps Threshold</th></tr></thead><tbody>`;
                     day.moves.forEach(move => {
-                        html += `<tr style="border-bottom:1px solid #1c1c22;"><td style="padding:0.75rem 0; font-weight:600; color:#fff;">${move.name || 'Structural Work'}</td><td style="padding:0.75rem 0; color:var(--gold); font-family:monospace; font-weight:bold; font-size:1.05rem;">${move.sets || '-'}</td><td style="padding:0.75rem 0; color:var(--text-muted); font-family:monospace;">${move.reps || '-'}</td></tr>`;
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);"><td style="padding:0.9rem 0; font-weight:700; color:#fff;">${move.name || 'Structural Work'}</td><td style="padding:0.9rem 0; color:var(--gold); font-family:monospace; font-weight:700; font-size:1.1rem;">${move.sets || '-'}</td><td style="padding:0.9rem 0; color:var(--text-muted); font-family:monospace;">${move.reps || '-'}</td></tr>`;
                     });
                     html += `</tbody></table>`;
                 }
                 html += `</div>`;
             });
 
-            html += `</div><div class="card"><h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.6rem; margin-bottom:1.5rem; color:var(--gold); font-size:1.4rem; font-weight:800;">🥗 NUTRITION TARGET PLAN</h3>`;
+            html += `</div><div class="card"><h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.4rem; font-weight:900; letter-spacing:0.5px;">🥗 NUTRITIONAL DIETARY PROFILES</h3>`;
             member.diet.forEach(meal => {
-                html += `<div style="display:flex; margin-bottom:1.25rem; padding-bottom:1.25rem; border-bottom:1px solid #232329; flex-wrap:wrap; gap:0.5rem;"><div style="font-weight:700; width:190px; color:var(--primary); text-transform:uppercase; font-size:0.9rem; padding-top:0.2rem;">${meal.meal}</div><div style="flex:1; color:var(--text-main); min-width:260px; font-size:1rem; line-height:1.5;">${meal.items ? meal.items.replace(/\n/g, '<br>') : 'Pending Log Input.'}</div></div>`;
+                html += `<div style="display:flex; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px solid var(--border-light); flex-wrap:wrap; gap:0.5rem;"><div style="font-weight:800; width:200px; color:var(--primary); text-transform:uppercase; font-size:0.9rem; letter-spacing:0.5px; padding-top:0.25rem;">${meal.meal}</div><div style="flex:1; color:var(--text-main); min-width:280px; font-size:1.05rem; line-height:1.6;">${meal.items ? meal.items.replace(/\n/g, '<br>') : 'Pending log entry from coach matrix.'}</div></div>`;
             });
             html += `</div>`;
             displayBox.innerHTML = html;
@@ -714,5 +763,3 @@ The underlying compression logic, link copying, and local caching parameters are
     </script>
 </body>
 </html>
-
-```
