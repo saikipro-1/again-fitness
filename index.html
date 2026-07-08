@@ -12,7 +12,6 @@
             --bg-slate: #161920;
             --bg-slate-dark: #0b0d10;
             --glass-panel: rgba(22, 26, 34, 0.75);
-            /* High-contrast border creates the crisp glass edge refraction */
             --glass-border: rgba(255, 255, 255, 0.12);
             --text-main: #f9fafb;
             --text-muted: #9ca3af;
@@ -27,7 +26,6 @@
 
         body {
             background-color: var(--bg-slate-dark);
-            /* EXPANDED AMBIENT RADIANCE GRID */
             background-image: 
                 radial-gradient(circle at 50% -20%, rgba(242, 101, 34, 0.18) 0%, transparent 60%),
                 radial-gradient(circle at 0% 100%, rgba(223, 186, 107, 0.05) 0%, transparent 40%),
@@ -47,8 +45,14 @@
         }
 
         @keyframes ambientLedPulse {
-            0%, 100% { box-shadow: 0 0 50px rgba(242, 101, 34, 0.35), inset 0 0 30px rgba(255,255,255,0.03); border-color: rgba(242, 101, 34, 0.6); }
-            50% { box-shadow: 0 0 75px rgba(242, 101, 34, 0.6), inset 0 0 45px rgba(255,255,255,0.08); border-color: rgba(255, 255, 255, 0.95); }
+            0%, 100% { 
+                box-shadow: 0 0 45px rgba(156, 212, 250, 0.3), inset 0 0 30px rgba(255,255,255,0.03); 
+                border-color: rgba(165, 217, 252, 0.6); 
+            }
+            50% { 
+                box-shadow: 0 0 70px rgba(165, 217, 252, 0.55), inset 0 0 45px rgba(255,255,255,0.08); 
+                border-color: rgba(255, 255, 255, 0.95); 
+            }
         }
 
         .animate-ui {
@@ -89,7 +93,7 @@
             padding: 0 1.5rem;
         }
 
-        /* HARDWARE LED CENTER EMBLEM */
+        /* RE-ENGINEERED TO PRECISELY MATCH THE SIGN PHOTO */
         .portal-hero {
             display: flex;
             flex-direction: column;
@@ -98,41 +102,28 @@
         }
 
         .floating-gym-sign {
-            width: 230px;
-            height: 230px;
+            width: 440px;
+            height: 440px;
             border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #232935 0%, #0f1217 100%);
-            border: 3px solid rgba(242, 101, 34, 0.4);
+            background: radial-gradient(circle at 50% 50%, #30353d 0%, #1c1f24 100%);
+            /* Matches the ice-blue neon glow behind the actual physical plate */
+            border: 3px solid rgba(165, 217, 252, 0.4);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 1.5rem;
+            padding: 2.5rem;
             animation: ambientLedPulse 5s infinite ease-in-out;
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+        }
+        @media (max-width: 500px) {
+            .floating-gym-sign { width: 320px; height: 320px; padding: 1.5rem; }
         }
         .floating-gym-sign:hover {
-            transform: scale(1.05) rotate(1deg);
+            transform: scale(1.03);
         }
 
-        .sign-text-main {
-            color: #ffffff;
-            font-size: 1.35rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 10px;
-        }
-        .sign-text-sub {
-            color: var(--gold);
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 4px;
-        }
-
-        /* LUMINESCENT INTERACTIVE SELECTION CARDS */
         .portal-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -148,14 +139,13 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
             border-radius: 24px;
-            padding: 5rem 3rem;
+            padding: 4.5rem 3rem;
             text-align: center;
             cursor: pointer;
             position: relative;
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Radial backlighting generated dynamically on hover */
         .portal-card::before {
             content: '';
             position: absolute;
@@ -209,7 +199,6 @@
             box-shadow: 0 30px 60px rgba(0,0,0,0.35);
         }
 
-        /* HIGH-LIGHT REFRACTIVE ACTION BUTTONS */
         .btn {
             background: var(--primary-gradient);
             color: white;
@@ -392,21 +381,61 @@
 
     <div class="container">
 
-        <!-- PORTAL SELECTION / HOME PAGE -->
+        <!-- PORTAL SELECTION / HOME PAGE WITH HIGH FIDELITY SVG SIGN -->
         <div id="portal-view" class="view-panel active animate-ui">
             <div class="portal-hero">
                 <div class="floating-gym-sign">
-                    <svg style="width:65%; height:50%;" viewBox="0 0 100 100">
+                    <!-- VECTOR ARTWORK DUPLICATED FROM YOUR PHOTO -->
+                    <svg viewBox="0 0 200 200" style="width: 100%; height: 100%;">
                         <defs>
-                            <linearGradient id="bGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#ffffff" /><stop offset="100%" stop-color="#64748b" />
+                            <linearGradient id="metallicA" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#c5a880" />
+                                <stop offset="50%" stop-color="#a38458" />
+                                <stop offset="100%" stop-color="#735a38" />
+                            </linearGradient>
+                            <linearGradient id="pinkAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#f472b6" />
+                                <stop offset="100%" stop-color="#ec4899" />
                             </linearGradient>
                         </defs>
-                        <path d="M50 12 L18 82 L32 82 L50 44 L68 82 L82 82 Z" fill="url(#bGrad)" />
-                        <path d="M30 64 L70 64 L64 53 L36 53 Z" fill="#334155" />
+                        
+                        <!-- Speed / Motion horizontal lines behind the athlete -->
+                        <g stroke="#94a3b8" stroke-width="1.5" opacity="0.6" stroke-linecap="round">
+                            <line x1="110" y1="70" x2="135" y2="70" />
+                            <line x1="105" y1="76" x2="130" y2="76" />
+                            <line x1="112" y1="82" x2="128" y2="82" />
+                            <line x1="102" y1="95" x2="132" y2="95" />
+                            <line x1="106" y1="101" x2="126" y2="101" />
+                            <line x1="100" y1="107" x2="135" y2="107" />
+                        </g>
+
+                        <!-- High-contrast geometric "A" framework -->
+                        <path d="M 75 25 L 35 115 L 56 115 L 75 70 L 112 115 L 132 115 Z" fill="url(#metallicA)" />
+                        <!-- Pink back-bar geometric accent mirroring the picture -->
+                        <path d="M 112 25 L 126 25 L 140 45 L 120 45 Z" fill="url(#pinkAccent)" />
+                        <line x1="117" y1="32" x2="136" y2="32" stroke="#ec4899" stroke-width="2" />
+                        <line x1="119" y1="38" x2="139" y2="38" stroke="#ec4899" stroke-width="2" />
+
+                        <!-- Bodybuilder flexing vector asset path -->
+                        <g fill="#e2e8f0" stroke="#1e293b" stroke-width="0.75">
+                            <!-- Head & Face profile -->
+                            <path d="M 141 53 Q 144 51 146 54 Q 145 57 143 59 Q 139 58 141 53 Z" />
+                            <!-- Torso / Six-pack abs structure -->
+                            <path d="M 134 70 Q 141 68 147 72 L 145 88 Q 138 90 132 85 Z" />
+                            <!-- Left chest / Pectoral block -->
+                            <path d="M 131 70 Q 138 68 142 75 Q 135 79 131 70 Z" />
+                            <!-- Right bicep & arm peak -->
+                            <path d="M 147 72 Q 155 64 161 62 Q 164 66 160 70 Q 155 74 148 78 Z" />
+                            <!-- Forearm & Clenched Fist -->
+                            <path d="M 161 62 Q 157 52 153 50 Q 150 53 154 58 Z" />
+                            <!-- Left Arm resting layout -->
+                            <path d="M 131 73 Q 123 72 121 82 Q 126 86 131 82 Z" />
+                        </g>
+
+                        <!-- Typography integrated onto the face-plate -->
+                        <text x="100" y="146" fill="#f26522" font-family="system-ui" font-weight="900" font-size="17" text-anchor="middle" letter-spacing="0.2">A-Gain Fitness</text>
+                        <text x="100" y="162" fill="#ffffff" font-family="system-ui" font-weight="600" font-size="7.5" text-anchor="middle" letter-spacing="0.1">The commitment is ours. The Gain is yours.</text>
                     </svg>
-                    <div class="sign-text-main">A-Gain Fitness</div>
-                    <div class="sign-text-sub">Performance Portal</div>
                 </div>
             </div>
 
