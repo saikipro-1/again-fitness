@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A-Gain Fitness | Elite Athlete Portal</title>
+    <title>A-Gain Fitness Portal</title>
     <style>
         :root {
             --primary: #f26522; 
-            --primary-gradient: linear-gradient(135deg, #f26522, #ff7a38);
+            --primary-hover: #e05313;
             --gold: #dfba6b; 
-            --bg-slate: #161920;
-            --bg-slate-dark: #0b0d10;
-            --glass-panel: rgba(22, 26, 34, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.12);
-            --text-main: #f9fafb;
+            --bg-dark: #0f1115;
+            --bg-card: #1a1d24;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
             --text-muted: #9ca3af;
         }
 
@@ -21,340 +20,240 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         }
 
         body {
-            background-color: var(--bg-slate-dark);
-            background-image: 
-                radial-gradient(circle at 50% -20%, rgba(242, 101, 34, 0.15) 0%, transparent 60%),
-                radial-gradient(circle at 0% 100%, rgba(223, 186, 107, 0.05) 0%, transparent 40%);
+            background-color: var(--bg-dark);
             color: var(--text-main);
             min-height: 100vh;
-            overflow-x: hidden;
             display: flex;
             flex-direction: column;
-        }
-
-        @keyframes subtleScaleUp {
-            from { opacity: 0; transform: scale(0.99) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        @keyframes ambientLedPulse {
-            0%, 100% { 
-                box-shadow: 0 0 25px rgba(165, 217, 252, 0.2), inset 0 0 15px rgba(255,255,255,0.01); 
-                border-color: rgba(165, 217, 252, 0.3); 
-            }
-            50% { 
-                box-shadow: 0 0 40px rgba(165, 217, 252, 0.35), inset 0 0 20px rgba(255,255,255,0.03); 
-                border-color: rgba(255, 255, 255, 0.5); 
-            }
-        }
-
-        .animate-ui {
-            animation: subtleScaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            font-size: 14px;
         }
 
         header {
-            background: rgba(11, 13, 16, 0.75);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-bottom: 1px solid var(--glass-border);
-            padding: 0.75rem 2rem;
+            background: #13161c;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 100;
         }
 
         .brand-title {
-            font-size: 1.4rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            text-transform: uppercase;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
         }
-        .brand-title span { color: var(--primary); text-shadow: 0 0 20px rgba(242, 101, 34, 0.6); }
+        .brand-title span { color: var(--primary); }
         .brand-slogan {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
-            letter-spacing: 0.05em;
-            margin-top: 1px;
+            margin-top: 2px;
         }
 
-        /* EXPANDED FULL WIDTH CONTAINER */
         .container {
             width: 100%;
-            max-width: 1800px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 1.5rem 2rem;
+            padding: 2rem;
             flex: 1;
             display: flex;
             flex-direction: column;
         }
 
-        .portal-hero {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .floating-gym-sign {
-            width: 130px;
-            height: 130px;
-            border-radius: 50%;
-            background: #2b2d35; 
-            border: 3px solid rgba(165, 217, 252, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.75rem;
-            animation: ambientLedPulse 5s infinite ease-in-out;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-
-        /* WIDE SCREEN ROW PACKING TO PREVENT SCROLLING */
+        /* PORTAL SELECTION (NORMAL DASHBOARD CARDS) */
         .portal-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            width: 100%;
-            flex: 1;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: auto 0;
         }
-        @media (max-width: 768px) { .portal-grid { grid-template-columns: 1fr; } }
 
         .portal-card {
-            background: var(--glass-panel);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 4rem 3rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2.5rem 2rem;
             text-align: center;
             cursor: pointer;
-            position: relative;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.2s ease-in-out;
         }
-
-        .portal-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 24px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        .portal-card.owner-card::before { background: radial-gradient(circle at 50% 50%, rgba(242, 101, 34, 0.15) 0%, transparent 70%); }
-        .portal-card.member-card::before { background: radial-gradient(circle at 50% 50%, rgba(223, 186, 107, 0.12) 0%, transparent 70%); }
-
-        .portal-card:hover::before { opacity: 1; }
-
         .portal-card:hover {
-            transform: translateY(-4px);
-            background: rgba(28, 33, 44, 0.85);
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
         }
-        .portal-card.owner-card:hover { 
-            border-color: rgba(242, 101, 34, 0.6);
-            box-shadow: 0 25px 50px rgba(242, 101, 34, 0.15); 
-        }
-        .portal-card.member-card:hover { 
-            border-color: rgba(223, 186, 107, 0.5);
-            box-shadow: 0 25px 50px rgba(223, 186, 107, 0.12); 
-        }
-
         .portal-card h2 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            color: #ffffff;
-            letter-spacing: -0.5px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
         }
-
         .portal-card p {
-            font-size: 1.1rem;
-            line-height: 1.6;
+            font-size: 0.9rem;
             color: var(--text-muted);
-            max-width: 540px;
-            margin: 0 auto;
+            line-height: 1.5;
         }
 
+        /* STANDARD APP CARD */
         .card {
-            background: var(--glass-panel);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.35);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
+        /* NORMAL PROPORTIONED BUTTONS */
         .btn {
-            background: var(--primary-gradient);
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 0.85rem 1.75rem;
-            border-radius: 10px;
+            padding: 0.6rem 1.25rem;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: background 0.2s;
         }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(242, 101, 34, 0.4);
-        }
+        .btn:hover { background: var(--primary-hover); }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.04);
-            color: #f3f4f6;
-            border: 1px solid var(--glass-border);
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
         }
-        .btn-secondary:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255,255,255,0.2); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.05); }
 
         .btn-gold {
             background: transparent;
             color: var(--gold);
-            border: 1px solid rgba(223, 186, 107, 0.4);
+            border: 1px solid rgba(223, 186, 107, 0.3);
         }
-        .btn-gold:hover { 
-            background: var(--gold); 
-            color: #0b0d10; 
-            box-shadow: 0 10px 20px rgba(223, 186, 107, 0.2);
-        }
-        .btn-danger { background: #ef4444; }
-        .btn-danger:hover { background: #dc2626; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2); }
+        .btn-gold:hover { background: rgba(223, 186, 107, 0.1); }
+        
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
 
+        /* INPUT FIELD MEASUREMENTS */
         input, select, textarea {
             width: 100%;
-            padding: 0.85rem 1.25rem;
-            background: rgba(10, 12, 16, 0.5);
-            border: 1px solid var(--glass-border);
+            padding: 0.6rem 0.9rem;
+            background: #111317;
+            border: 1px solid var(--border-color);
             color: white;
-            border-radius: 10px;
-            margin-top: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-            transition: all 0.3s;
+            border-radius: 6px;
+            margin-top: 0.4rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
         }
         input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
-            background: rgba(10, 12, 16, 0.7);
-            box-shadow: 0 0 15px rgba(242, 101, 34, 0.2);
         }
 
         .view-panel { display: none; }
         .view-panel.active { display: flex; flex-direction: column; flex: 1; }
 
+        /* STANDARD WORKSPACE SIDEBAR LAYOUT */
         .owner-layout {
             display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 2rem;
+            grid-template-columns: 280px 1fr;
+            gap: 1.5rem;
             flex: 1;
         }
-        @media (max-width: 1100px) { .owner-layout { grid-template-columns: 1fr; } }
 
-        .member-sidebar {
-            background: rgba(17, 20, 27, 0.95);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 2rem;
-            height: fit-content;
+        .sidebar {
+            background: #13161c;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
         }
 
         .member-item {
-            padding: 1.25rem;
-            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
             cursor: pointer;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid transparent;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            background: rgba(255, 255, 255, 0.01);
+            font-size: 0.9rem;
         }
-        .member-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            transform: translateX(4px);
-        }
+        .member-item:hover { background: rgba(255, 255, 255, 0.04); }
         .member-item.active {
-            background: rgba(242, 101, 34, 0.08);
-            border-color: rgba(242, 101, 34, 0.5);
+            background: rgba(242, 101, 34, 0.1);
+            border: 1px solid rgba(242, 101, 34, 0.3);
+            color: white;
         }
 
-        .member-code-badge {
+        .badge {
             font-family: monospace;
-            background: rgba(0,0,0,0.4);
-            padding: 0.25rem 0.6rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
+            background: rgba(0,0,0,0.3);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
             color: var(--gold);
-            font-weight: 600;
         }
 
         .row-entry {
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
 
         .tabs {
             display: flex;
-            gap: 1rem;
-            border-bottom: 1px solid var(--glass-border);
-            margin-bottom: 2rem;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
         }
         .tab {
-            padding: 1rem 2rem;
+            padding: 0.6rem 1.25rem;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
+            border-bottom: 2px solid transparent;
             color: var(--text-muted);
-            font-weight: 700;
-            font-size: 1rem;
-            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 0.9rem;
         }
         .tab.active {
             border-bottom-color: var(--primary);
-            color: #ffffff;
+            color: white;
         }
 
+        /* CLEAN DATA TABLES */
         table {
             width: 100%;
-            margin-top: 1rem;
             border-collapse: collapse;
+            margin-top: 0.5rem;
         }
         th {
             text-align: left;
             color: var(--text-muted);
-            padding: 1rem;
-            font-size: 0.85rem;
-            font-weight: 700;
+            padding: 0.75rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            border-bottom: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--border-color);
+            letter-spacing: 0.5px;
         }
         td {
-            padding: 1.25rem 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-            font-size: 1rem;
+            padding: 0.85rem 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            font-size: 0.9rem;
         }
 
-        .sync-log {
-            background: #0b0d10;
-            border-top: 1px solid var(--glass-border);
-            padding: 0.75rem 2rem;
+        .footer-bar {
+            background: #13161c;
+            border-top: 1px solid var(--border-color);
+            padding: 0.5rem 2rem;
             font-family: monospace;
-            font-size: 0.8rem;
-            color: var(--gold);
+            font-size: 0.75rem;
+            color: var(--text-muted);
             display: flex;
             justify-content: space-between;
-            margin-top: auto;
         }
     </style>
 </head>
@@ -372,134 +271,86 @@
 
     <div class="container">
 
-        <!-- PORTAL SELECTION / EXPANDED WIDESCREEN GRID -->
-        <div id="portal-view" class="view-panel active animate-ui">
-            <div class="portal-hero">
-                <div class="floating-gym-sign">
-                    <!-- SHARP, RED & WHITE GEOMETRIC STRIPED "A" LOGO -->
-                    <svg viewBox="0 0 200 200" style="width: 100%; height: 100%;">
-                        <defs>
-                            <linearGradient id="metalBase" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#cfbca2" />
-                                <stop offset="50%" stop-color="#bda78a" />
-                                <stop offset="100%" stop-color="#948067" />
-                            </linearGradient>
-                            <linearGradient id="redStripe" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#ef4444" />
-                                <stop offset="100%" stop-color="#b91c1c" />
-                            </linearGradient>
-                        </defs>
-                        
-                        <path d="M 100 25 L 45 135 L 72 135 L 108 55 Z" fill="url(#metalBase)" />
-                        <path d="M 108 55 L 145 135 L 168 135 L 118 25 Z" fill="url(#metalBase)" />
-                        <path d="M 68 110 L 120 110 L 126 122 L 62 122 Z" fill="url(#metalBase)" opacity="0.85" />
-
-                        <!-- RED STRIPES -->
-                        <path d="M 110 25 L 138 25 L 151 55 L 123 55 Z" fill="url(#redStripe)" />
-                        <g fill="#2b2d35">
-                            <rect x="108" y="30" width="14" height="2.5" />
-                            <rect x="112" y="36" width="16" height="2.5" />
-                            <rect x="116" y="42" width="16" height="2.5" />
-                            <rect x="120" y="48" width="12" height="2.5" />
-                        </g>
-
-                        <!-- WHITE STRIPES -->
-                        <g fill="#ffffff">
-                            <path d="M 105 76 L 128 76 L 125 80 L 100 80 Z" />
-                            <path d="M 101 84 L 131 84 L 128 88 L 96 88 Z" />
-                            <path d="M 98 92 L 135 92 L 132 96 L 92 96 Z" />
-                            <path d="M 95 100 L 139 100 L 136 104 L 89 104 Z" />
-                            <path d="M 97 108 L 135 108 L 132 112 L 93 112 Z" />
-                        </g>
-                    </svg>
-                </div>
-            </div>
-
+        <div id="portal-view" class="view-panel active">
             <div class="portal-grid">
-                <div class="portal-card owner-card" onclick="showView('owner-auth-view')">
+                <div class="portal-card" onclick="showView('owner-auth-view')">
                     <h2>Coach Terminal</h2>
-                    <p>Configure athlete workout blocks, control nutrition metrics, and distribute automated sharing URLs.</p>
+                    <p>Manage athlete training cycles, diet plans, and view active registry metrics.</p>
                 </div>
-                <div class="portal-card member-card" onclick="showView('member-auth-view')">
+                <div class="portal-card" onclick="showView('member-auth-view')">
                     <h2>Athlete Hub</h2>
-                    <p>Access your personalized, live tracking sheets and custom meal plan macros anytime.</p>
+                    <p>Log in with your private access pass code to view your active split program.</p>
                 </div>
             </div>
         </div>
 
-        <!-- OWNER AUTH -->
-        <div id="owner-auth-view" class="view-panel animate-ui">
-            <div class="card" style="max-width: 500px; margin: 4rem auto 0 auto; width:100%;">
-                <h3 style="font-size: 1.6rem; margin-bottom: 0.5rem;">Coach Authorization</h3>
-                <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem;">Input configuration access security code</p>
-                <input type="password" id="owner-pin" placeholder="Default PIN is 1234">
-                <div style="display:flex; gap:0.75rem;">
+        <div id="owner-auth-view" class="view-panel">
+            <div class="card" style="max-width: 400px; margin: auto; width:100%;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 0.25rem;">Coach Authorization</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Enter configuration access PIN</p>
+                <input type="password" id="owner-pin" placeholder="Default PIN: 1234">
+                <div style="display:flex; gap:0.5rem;">
                     <button class="btn" style="flex:1;" onclick="verifyOwnerPin()">Verify</button>
                     <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
                 </div>
-                <p id="owner-auth-error" style="color: #ef4444; margin-top: 1rem; display:none; font-weight: 600; font-size:0.9rem;">❌ Invalid PIN layout</p>
+                <p id="owner-auth-error" style="color: #ef4444; margin-top: 0.75rem; display:none; font-size:0.8rem;">❌ Incorrect security access credentials</p>
             </div>
         </div>
 
-        <!-- MEMBER AUTH -->
-        <div id="member-auth-view" class="view-panel animate-ui">
-            <div class="card" style="max-width: 500px; margin: 4rem auto 0 auto; width:100%;">
-                <h3 style="font-size: 1.6rem; margin-bottom: 0.5rem;">Athlete Log-In</h3>
-                <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem;">Input the unique ID assigned to your profile record</p>
+        <div id="member-auth-view" class="view-panel">
+            <div class="card" style="max-width: 400px; margin: auto; width:100%;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 0.25rem;">Athlete Log-In</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Enter your designated profile tracking ID</p>
                 <input type="text" id="member-code" placeholder="e.g., AGN-4321" style="text-transform: uppercase;">
-                <div style="display:flex; gap:0.75rem;">
+                <div style="display:flex; gap:0.5rem;">
                     <button class="btn" style="flex:1;" onclick="verifyMemberCode()">Load Profile</button>
                     <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
                 </div>
-                <p id="member-auth-error" style="color: #ef4444; margin-top: 1rem; display:none; font-weight: 600; font-size:0.9rem;">❌ Code verification failed</p>
+                <p id="member-auth-error" style="color: #ef4444; margin-top: 0.75rem; display:none; font-size:0.8rem;">❌ Assigned profile not found</p>
             </div>
         </div>
 
-        <!-- OWNER DASHBOARD -->
-        <div id="owner-dashboard-view" class="view-panel animate-ui">
+        <div id="owner-dashboard-view" class="view-panel">
             <div class="owner-layout">
-                <div class="member-sidebar">
-                    <h3 style="margin-bottom: 1.25rem; font-size: 0.9rem; color: #fff; font-weight: 700; letter-spacing: 0.05em;">ATHLETE REGISTRY</h3>
-                    <div style="margin-bottom: 1.5rem;">
-                        <input type="text" id="new-member-name" placeholder="Full Name" style="margin-bottom:0.75rem;">
-                        <button class="btn" style="width: 100%;" onclick="addMember()">➕ Add Profile Record</button>
+                <div class="sidebar">
+                    <h4 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; letter-spacing: 0.5px;">ATHLETE ROSTER</h4>
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="new-member-name" placeholder="Client Name" style="margin-bottom:0.5rem; padding: 0.5rem;">
+                        <button class="btn" style="width: 100%; padding: 0.5rem;" onclick="addMember()">Add New Profile</button>
                     </div>
-                    <hr style="border-color: var(--glass-border); margin-bottom:1.5rem;">
                     <div id="member-roster-list"></div>
-                    <button class="btn btn-secondary" style="width:100%; font-size:0.85rem; margin-top:2rem;" onclick="promptChangePin()">Modify Master PIN</button>
                 </div>
                 <div id="management-workbench" style="display: flex; flex-direction: column;"></div>
             </div>
         </div>
 
-        <!-- READ-ONLY MEMBER VIEW -->
-        <div id="member-display-view" class="view-panel animate-ui">
-            <div id="member-display-content"></div>
+        <div id="member-display-view" class="view-panel">
+            <div id="member-display-content" style="max-width: 800px; margin: 0 auto; width: 100%;"></div>
         </div>
 
     </div>
 
-    <div class="sync-log">
-        <span>A-Gain Central Data Pipeline Matrix</span>
-        <span id="sync-status-text">Status: Connected</span>
+    <div class="footer-bar">
+        <span>A-Gain System Pipeline Engine</span>
+        <span id="sync-status-text">Database State: Synchronized</span>
     </div>
 
     <script>
         const defaultWorkoutStructure = () => [
-            { day: "Monday", target: "Push Day Split", moves: [] },
-            { day: "Tuesday", target: "Pull Day Split", moves: [] },
-            { day: "Wednesday", target: "Legs Split Complex", moves: [] },
-            { day: "Thursday", target: "Shoulders Focus", moves: [] },
-            { day: "Friday", target: "Upper Body Hypertrophy Focus", moves: [] },
-            { day: "Saturday", target: "Engine Conditioning", moves: [] }
+            { day: "Monday", target: "Push Day", moves: [] },
+            { day: "Tuesday", target: "Pull Day", moves: [] },
+            { day: "Wednesday", target: "Legs Complex", moves: [] },
+            { day: "Thursday", target: "Shoulders/Arms", moves: [] },
+            { day: "Friday", target: "Upper Hypertrophy", moves: [] },
+            { day: "Saturday", target: "Conditioning Engine", moves: [] }
         ];
 
         const defaultDietStructure = () => [
-            { meal: "Breakfast", items: "" },
-            { meal: "Pre-Workout Intake", items: "" },
-            { meal: "Post-Workout Intake", items: "" },
-            { meal: "Lunch Structure", items: "" },
-            { meal: "Dinner Structure", items: "" }
+            { meal: "Meal 1 (Breakfast)", items: "" },
+            { meal: "Meal 2 (Pre-Workout)", items: "" },
+            { meal: "Meal 3 (Post-Workout)", items: "" },
+            { meal: "Meal 4 (Lunch)", items: "" },
+            { meal: "Meal 5 (Dinner)", items: "" }
         ];
 
         let appData = { ownerPin: "1234", members: {} };
@@ -507,7 +358,7 @@
         let currentOwnerTab = 'workout';
 
         window.onload = function() {
-            const cached = localStorage.getItem('again_fitness_master_db_v2');
+            const cached = localStorage.getItem('again_fitness_db_v3');
             if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
@@ -515,9 +366,8 @@
             if (directId) {
                 if (dataPayload) {
                     try {
-                        const individualMemberData = JSON.parse(decodeURIComponent(atob(dataPayload)));
-                        appData.members[directId] = individualMemberData;
-                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+                        appData.members[directId] = JSON.parse(decodeURIComponent(atob(dataPayload)));
+                        localStorage.setItem('again_fitness_db_v3', JSON.stringify(appData));
                     } catch(e){}
                 }
                 if(appData.members[directId]) { renderMemberDisplayView(directId); showView('member-display-view'); }
@@ -526,17 +376,15 @@
 
         function resetToPortal() { window.history.replaceState({}, document.title, window.location.pathname); showView('portal-view'); }
         function syncData() {
-            localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
-            const logText = document.getElementById('sync-status-text');
-            logText.innerText = `Pipeline Synchronized Live!`;
-            logText.style.color = "#4ade80";
-            setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
+            localStorage.setItem('again_fitness_db_v3', JSON.stringify(appData));
+            const txt = document.getElementById('sync-status-text');
+            txt.innerText = "Changes Saved Auto!"; txt.style.color = "#4ade80";
+            setTimeout(() => { txt.innerText = "Database State: Synchronized"; txt.style.color = "var(--text-muted)"; }, 1500);
         }
 
         function showView(viewId) {
-            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
-            const element = document.getElementById(viewId);
-            element.classList.add('active');
+            document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
             if(viewId === 'owner-dashboard-view') { renderRoster(); renderWorkbench(); }
         }
 
@@ -545,156 +393,137 @@
             else { document.getElementById('owner-auth-error').style.display = 'block'; }
         }
 
-        function promptChangePin() {
-            const currentPinCheck = prompt("Verify current PIN:");
-            if (currentPinCheck !== appData.ownerPin) { alert("Incorrect matching sequence."); return; }
-            const newPin = prompt("Enter new PIN sequence:");
-            if(newPin && newPin.trim().length > 0) { appData.ownerPin = newPin.trim(); syncData(); alert("PIN Saved."); }
-        }
-
         function verifyMemberCode() {
-            const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
-            if(appData.members[targetCode]) { renderMemberDisplayView(targetCode); showView('member-display-view'); } 
+            const code = document.getElementById('member-code').value.trim().toUpperCase();
+            if(appData.members[code]) { renderMemberDisplayView(code); showView('member-display-view'); } 
             else { document.getElementById('member-auth-error').style.display = 'block'; }
         }
 
         function renderRoster() {
-            const listContainer = document.getElementById('member-roster-list');
-            listContainer.innerHTML = '';
-            Object.values(appData.members).forEach(member => {
+            const container = document.getElementById('member-roster-list');
+            container.innerHTML = '';
+            Object.values(appData.members).forEach(m => {
                 const div = document.createElement('div');
-                div.className = `member-item ${currentSelectedMemberId === member.id ? 'active' : ''}`;
-                div.onclick = () => { currentSelectedMemberId = member.id; renderRoster(); renderWorkbench(); };
-                div.innerHTML = `<span style="font-weight:600; font-size:1.05rem;">${member.name}</span><span class="member-code-badge">${member.id}</span>`;
-                listContainer.appendChild(div);
+                div.className = `member-item ${currentSelectedMemberId === m.id ? 'active' : ''}`;
+                div.onclick = () => { currentSelectedMemberId = m.id; renderRoster(); renderWorkbench(); };
+                div.innerHTML = `<span>${m.name}</span><span class="badge">${m.id}</span>`;
+                container.appendChild(div);
             });
         }
 
         function addMember() {
-            const inputField = document.getElementById('new-member-name');
-            const name = inputField.value.trim();
-            if(!name) return;
+            const f = document.getElementById('new-member-name');
+            if(!f.value.trim()) return;
             const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
-            appData.members[newId] = { id: newId, name: name, workout: defaultWorkoutStructure(), diet: defaultDietStructure() };
-            inputField.value = ''; currentSelectedMemberId = newId; syncData(); renderRoster(); renderWorkbench();
+            appData.members[newId] = { id: newId, name: f.value.trim(), workout: defaultWorkoutStructure(), diet: defaultDietStructure() };
+            f.value = ''; currentSelectedMemberId = newId; syncData(); renderRoster(); renderWorkbench();
         }
 
-        function deleteMember(memberId) {
-            if(confirm("Permanently wipe profile data configuration?")) { delete appData.members[memberId]; currentSelectedMemberId = null; syncData(); renderRoster(); renderWorkbench(); }
+        function deleteMember(id) {
+            if(confirm("Delete athlete profile record?")) { delete appData.members[id]; currentSelectedMemberId = null; syncData(); renderRoster(); renderWorkbench(); }
         }
 
-        function copyShareLink(memberId) {
-            const base64Data = btoa(encodeURIComponent(JSON.stringify(appData.members[memberId])));
-            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}&d=${base64Data}`;
-            navigator.clipboard.writeText(directUrl).then(() => { alert(`Live Access Link Generated:\n\n${directUrl}`); });
+        function copyShareLink(id) {
+            const b64 = btoa(encodeURIComponent(JSON.stringify(appData.members[id])));
+            const url = `${window.location.origin}${window.location.pathname}?id=${id}&d=${b64}`;
+            navigator.clipboard.writeText(url).then(() => { alert("Athlete access URL copied successfully to clipboard!"); });
         }
 
         function renderWorkbench() {
             const container = document.getElementById('management-workbench');
             if(!currentSelectedMemberId || !appData.members[currentSelectedMemberId]) {
-                container.innerHTML = `<div class="card" style="text-align: center; color: var(--text-muted); padding: 8rem 2rem; flex: 1; display:flex; flex-direction:column; justify-content:center;"><h3>Workspace Empty</h3><p style="margin-top:0.5rem; font-size:1.1rem;">Select an active member from the tracking side-panel roster layout to edit profiles.</p></div>`;
+                container.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:5rem 1rem;"><h4>No Client Profile Loaded</h4><p style="font-size:0.85rem; margin-top:0.25rem;">Select an athlete from the registry column to begin configuring metrics.</p></div>`;
                 return;
             }
             const member = appData.members[currentSelectedMemberId];
             let html = `
-                <div class="card" style="flex: 1;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; border-bottom:1px solid var(--border-color); padding-bottom:1rem;">
                         <div>
-                            <h2 style="font-size:2.2rem; font-weight:800;">${member.name}</h2>
-                            <p style="color:var(--text-muted); font-size:0.95rem; margin-top:0.25rem;">Roster ID Token: <strong style="color:var(--gold); font-family:monospace;">${member.id}</strong></p>
+                            <h3 style="font-size:1.35rem; font-weight:600;">${member.name}</h3>
+                            <p style="color:var(--text-muted); font-size:0.8rem; margin-top:2px;">User Token: <span style="color:var(--gold); font-family:monospace;">${member.id}</span></p>
                         </div>
-                        <div style="display:flex; gap:0.75rem;">
-                            <button class="btn btn-gold" style="padding:0.85rem 1.5rem;" onclick="copyShareLink('${member.id}')">📋 Copy Client Link</button>
-                            <button class="btn btn-danger" style="padding:0.85rem 1.5rem;" onclick="deleteMember('${member.id}')">Delete Profile</button>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Shared URL</button>
+                            <button class="btn btn-danger" onclick="deleteMember('${member.id}')">Delete</button>
                         </div>
                     </div>
                     <div class="tabs">
-                        <div class="tab ${currentOwnerTab === 'workout' ? 'active' : ''}" onclick="switchTab('workout')">🏋️‍♂️ Workout Matrix Editor</div>
-                        <div class="tab ${currentOwnerTab === 'diet' ? 'active' : ''}" onclick="switchTab('diet')">🥗 Dietary Macros Editor</div>
+                        <div class="tab ${currentOwnerTab === 'workout' ? 'active' : ''}" onclick="switchTab('workout')">Training Split</div>
+                        <div class="tab ${currentOwnerTab === 'diet' ? 'active' : ''}" onclick="switchTab('diet')">Nutrition Macros</div>
                     </div>
             `;
 
             if(currentOwnerTab === 'workout') {
-                html += `<div>`;
-                member.workout.forEach((block, dayIndex) => {
+                member.workout.forEach((block, dIdx) => {
                     html += `
-                        <div style="background: rgba(0,0,0,0.15); padding:1.5rem; border-radius:16px; margin-bottom:1.5rem; border:1px solid var(--glass-border)">
-                            <div style="display:flex; gap:1rem; margin-bottom:1.25rem;">
-                                <input type="text" value="${block.day}" style="width:150px; margin:0; font-weight:800; color:var(--primary); font-size:1.1rem;" onchange="updateDayName(${dayIndex}, this.value); syncData()">
-                                <input type="text" value="${block.target}" style="margin:0; font-weight: 700; font-size:1.1rem;" onchange="updateDayTarget(${dayIndex}, this.value); syncData()">
+                        <div style="background:rgba(0,0,0,0.1); border:1px solid var(--border-color); border-radius:8px; padding:1rem; margin-bottom:1rem;">
+                            <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                                <input type="text" value="${block.day}" style="width:120px; margin:0; font-weight:600; padding:0.4rem;" onchange="appData.members['${member.id}'].workout[${dIdx}].day=this.value; syncData()">
+                                <input type="text" value="${block.target}" style="margin:0; padding:0.4rem;" onchange="appData.members['${member.id}'].workout[${dIdx}].target=this.value; syncData()">
                             </div>
-                        <div style="padding-left:1.25rem; border-left: 2px dashed var(--primary);">
-                    `;
-                    block.moves.forEach((move, moveIndex) => {
+                            <div style="padding-left:1rem; border-left:1px solid var(--primary);">
+                        `;
+                    block.moves.forEach((move, mIdx) => {
                         html += `
                             <div class="row-entry">
-                                <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value); syncData()">
-                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:100px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value); syncData()">
-                                <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:140px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value); syncData()">
-                                <button class="btn btn-secondary" style="padding:0.85rem 1.25rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
+                                <input type="text" value="${move.name}" placeholder="Movement Title" style="margin:0; padding:0.4rem;" onchange="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].name=this.value; syncData()">
+                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:70px; margin:0; padding:0.4rem;" onchange="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].sets=this.value; syncData()">
+                                <input type="text" value="${move.reps}" placeholder="Reps" style="width:100px; margin:0; padding:0.4rem;" onchange="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].reps=this.value; syncData()">
+                                <button class="btn btn-secondary" style="padding:0.4rem 0.75rem; margin:0;" onclick="appData.members['${member.id}'].workout[${dIdx}].moves.splice(${mIdx},1); syncData(); renderWorkbench();">✕</button>
                             </div>
                         `;
                     });
-                    html += `<button class="btn btn-secondary" style="font-size:0.85rem; padding:0.5rem 1rem; margin-top:0.5rem;" onclick="addMove(${dayIndex})">➕ Add Exercise Slot</button></div></div>`;
+                    html += `<button class="btn btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem; margin-top:0.25rem;" onclick="appData.members['${member.id}'].workout[${dIdx}].moves.push({name:'',sets:'',reps:''}); syncData(); renderWorkbench();">➕ Add Entry</button></div></div>`;
                 });
-                html += `</div>`;
             } else {
-                html += `<div>`;
-                member.diet.forEach((meal, mealIndex) => {
+                member.diet.forEach((meal, mIdx) => {
                     html += `
-                        <div class="row-entry" style="align-items: flex-start; gap:1.5rem; margin-bottom: 1.5rem;">
-                            <input type="text" value="${meal.meal}" style="width:250px; margin:0; font-weight:700; color:var(--gold); font-size:1.1rem;" onchange="updateDietField(${mealIndex}, 'meal', this.value); syncData()">
-                            <textarea style="margin:0; height:90px; resize:vertical; font-size:1rem;" onchange="updateDietField(${mealIndex}, 'items', this.value); syncData()">${meal.items}</textarea>
+                        <div class="row-entry" style="align-items:flex-start;">
+                            <input type="text" value="${meal.meal}" style="width:180px; margin:0; font-weight:600; padding:0.4rem;" onchange="appData.members['${member.id}'].diet[${mIdx}].meal=this.value; syncData()">
+                            <textarea style="margin:0; height:60px; padding:0.4rem;" onchange="appData.members['${member.id}'].diet[${mIdx}].items=this.value; syncData()">${meal.items}</textarea>
                         </div>
                     `;
                 });
-                html += `</div>`;
             }
             html += `</div>`; container.innerHTML = html;
         }
 
-        function switchTab(tabName) { currentOwnerTab = tabName; renderWorkbench(); }
-        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; }
-        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; }
-        function addMove(dIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); syncData(); renderWorkbench(); }
-        function updateMoveField(dIdx, mIdx, field, val) { appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; }
-        function removeMove(dIdx, mIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.splice(mIdx, 1); syncData(); renderWorkbench(); }
-        function updateDietField(mIdx, field, val) { appData.members[currentSelectedMemberId].diet[mIdx][field] = val; }
+        function switchTab(t) { currentOwnerTab = t; renderWorkbench(); }
 
-        function renderMemberDisplayView(memberId) {
-            const member = appData.members[memberId];
-            const displayBox = document.getElementById('member-display-content');
+        function renderMemberDisplayView(id) {
+            const member = appData.members[id];
+            const display = document.getElementById('member-display-content');
             let html = `
-                <div style="text-align: center; margin-bottom: 3rem;">
-                    <p style="text-transform:uppercase; letter-spacing:2px; color:var(--gold); font-size:0.95rem; font-weight:700;">Custom Training Profile Portal</p>
-                    <h2 style="font-size:3rem; margin-top:0.25rem; font-weight:800; text-transform: uppercase;">${member.name}</h2>
+                <div style="margin-bottom:1.5rem;">
+                    <p style="color:var(--gold); font-size:0.8rem; font-weight:600; text-transform:uppercase;">Athlete Panel</p>
+                    <h2 style="font-size:1.75rem; font-weight:700;">${member.name}</h2>
                 </div>
-                <div class="card" style="margin-bottom:2.5rem;">
-                    <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--primary); font-size:1.5rem; font-weight:800;">🏋️‍♂️ TARGET ROTATION ROUTINE WORKOUT SHEET</h3>
+                <div class="card" style="margin-bottom:1.5rem;">
+                    <h3 style="font-size:1.1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem; margin-bottom:1rem; color:var(--primary)">🏋️‍♂️ Assigned Training Target Splitting Matrix</h3>
             `;
             member.workout.forEach(day => {
                 html += `
-                    <div style="margin-bottom:2rem; background:rgba(0,0,0,0.15); padding:2rem; border-radius:16px; border-left: 4px solid var(--primary); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
-                        <h4 style="font-size:1.3rem; font-weight:800;">${day.day} <span style="font-weight:400; font-size:1.1rem; color:var(--text-muted);">— ${day.target}</span></h4>
+                    <div style="margin-bottom:1rem; background:rgba(0,0,0,0.1); padding:1rem; border-radius:8px; border-left:2px solid var(--primary);">
+                        <h4 style="font-size:0.95rem; font-weight:600;">${day.day} <span style="font-weight:400; color:var(--text-muted);">— ${day.target}</span></h4>
                 `;
                 if(day.moves.length === 0) {
-                    html += `<p style="color:var(--text-muted); font-size:1rem; margin-top:0.75rem; font-style:italic;">Rest day variant allocated by coach structure.</p>`;
+                    html += `<p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.4rem; font-style:italic;">Rest Allocation Block</p>`;
                 } else {
-                    html += `<table>
-                            <thead><tr><th>Movement Exercise Spec</th><th style="width:120px;">Sets</th><th style="width:160px;">Reps Threshold</th></tr></thead><tbody>`;
-                    day.moves.forEach(move => {
-                        html += `<tr><td style="font-weight:600; font-size:1.1rem;">${move.name || 'Structural Integration Movement'}</td><td style="color:var(--gold); font-family:monospace; font-weight:800; font-size:1.2rem;">${move.sets || '-'}</td><td style="color:var(--text-muted); font-family:monospace; font-size:1.05rem;">${move.reps || '-'}</td></tr>`;
+                    html += `<table><thead><tr><th>Exercise Name Spec</th><th style="width:80px;">Sets</th><th style="width:100px;">Reps Set</th></tr></thead><tbody>`;
+                    day.moves.forEach(m => {
+                        html += `<tr><td>${m.name || 'Routine Exercise'}</td><td style="color:var(--gold); font-family:monospace; font-weight:600;">${m.sets || '-'}</td><td style="color:var(--text-muted); font-family:monospace;">${m.reps || '-'}</td></tr>`;
                     });
                     html += `</tbody></table>`;
                 }
                 html += `</div>`;
             });
 
-            html += `</div><div class="card"><h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.5rem; font-weight:800;">🥗 SPECCED NUTRITIONAL MACRO DIETS</h3>`;
+            html += `</div><div class="card"><h3 style="font-size:1.1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem; margin-bottom:1rem; color:var(--gold)">🥗 Dietary Management Guide</h3>`;
             member.diet.forEach(meal => {
-                html += `<div style="display:flex; margin-bottom:2rem; padding-bottom:2rem; border-bottom:1px solid var(--glass-border); flex-wrap:wrap; gap:1.5rem;"><div style="font-weight:800; width:220px; color:var(--primary); text-transform:uppercase; font-size:1rem; letter-spacing:0.5px;">${meal.meal}</div><div style="flex:1; color:#fff; min-width:300px; font-size:1.1rem; line-height:1.6;">${meal.items ? meal.items.replace(/\n/g, '<br>') : 'Awaiting profile update logs.'}</div></div>`;
+                html += `<div style="display:flex; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.02); gap:1rem;"><div style="font-weight:600; width:160px; font-size:0.9rem;">${meal.meal}</div><div style="flex:1; color:var(--text-muted); font-size:0.9rem; line-height:1.4;">${meal.items ? meal.items.replace(/\n/g, '<br>') : 'Pending entry data...'}</div></div>`;
             });
-            html += `</div>`; displayBox.innerHTML = html;
+            html += `</div>`; display.innerHTML = html;
         }
     </script>
 </body>
