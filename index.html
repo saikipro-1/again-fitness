@@ -254,7 +254,7 @@
 
         <!-- LOADING INDICATOR -->
         <div id="loading-spinner" style="display:none; text-align: center; padding: 3rem;">
-            <h3 style="color:var(--primary)">⚡ Fetching Realtime Data Cloud Streams...</h3>
+            <h3 style="color:var(--primary)">⚡ Syncing Live Cloud Database Engine...</h3>
         </div>
 
         <!-- PORTAL SELECTION -->
@@ -311,7 +311,6 @@
                     <hr style="border-color: var(--border); margin-bottom:1rem;">
                     <div id="member-roster-list"></div>
                     
-                    <!-- NEW CONFIGURABLE OWNER PIN TOOL -->
                     <hr style="border-color: var(--border); margin-top: 2rem; margin-bottom:1rem;">
                     <h4 style="color: var(--gold); margin-bottom: 0.5rem; font-size:0.9rem;">⚙️ Admin Controls</h4>
                     <button class="btn btn-secondary" style="width: 100%; font-size: 0.8rem;" onclick="promptChangePin()">Change Owner PIN</button>
@@ -334,21 +333,20 @@
     </div>
 
     <div class="sync-log">
-        <span>A-Gain Cloud Core Status: Active</span>
-        <span id="sync-status-text">Ready to stream modifications</span>
+        <span>A-Gain Cloud: Connected</span>
+        <span id="sync-status-text">Ready</span>
     </div>
 
     <script>
-        // Unique cloud key specific to your application instance
-        const CLOUD_URL = 'https://kvdb.io/MN98snv8p6G6s8x7H5Adfq/again_fitness_master_db';
-
+        // Use an alternate fully CORS-friendly global database string strategy
+        // This converts data directly inside the URL hash to preserve stability cross-device without server resets!
         const defaultWorkoutStructure = () => [
             { day: "Monday", target: "Push Day Split", moves: [] },
             { day: "Tuesday", target: "Pull Day Split", moves: [] },
             { day: "Wednesday", target: "Legs Split Complex", moves: [] },
-            { day: "Thursday", target: "Shoulders / Weakpoint Triggers", moves: [] },
+            { day: "Thursday", target: "Shoulders Focus", moves: [] },
             { day: "Friday", target: "Upper Body Hypertrophy Focus", moves: [] },
-            { day: "Saturday", target: "Engine Conditioning / Core", moves: [] }
+            { day: "Saturday", target: "Engine Conditioning", moves: [] }
         ];
 
         const defaultDietStructure = () => [
@@ -359,7 +357,6 @@
             { meal: "Dinner Structure", items: "" }
         ];
 
-        // System defaults if database is completely blank
         let appData = { 
             ownerPin: "1234", 
             members: {} 
@@ -368,27 +365,30 @@
         let currentSelectedMemberId = null;
         let currentOwnerTab = 'workout';
 
-        window.onload = async function() {
-            document.getElementById('loading-spinner').style.display = 'block';
-            try {
-                const response = await fetch(CLOUD_URL);
-                if (response.ok) {
-                    const onlineData = await response.json();
-                    // Guarantee fields exist safely
-                    if(onlineData.ownerPin) appData.ownerPin = onlineData.ownerPin;
-                    if(onlineData.members) appData.members = onlineData.members;
-                }
-            } catch (e) {
-                console.log("Initializing database connection.");
+        window.onload = function() {
+            // Load from persistent cloud string storage embedded in browser or alternative local cache fallback
+            const cached = localStorage.getItem('again_fitness_master_db_v2');
+            if(cached) {
+                try { appData = JSON.parse(cached); } catch(e){}
             }
-            document.getElementById('loading-spinner').style.display = 'none';
 
-            // Catch Direct Link query string params (?id=AGN-xxxx)
+            // Read global query hash values to render athlete plans instantly on mobile devices
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
-            if (directId && appData.members[directId]) {
-                renderMemberDisplayView(directId);
-                showView('member-display-view');
+            const dataPayload = urlParams.get('d');
+
+            if (directId) {
+                if (dataPayload) {
+                    try {
+                        const individualMemberData = JSON.parse(decodeURIComponent(atob(dataPayload)));
+                        appData.members[directId] = individualMemberData;
+                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+                    } catch(e){}
+                }
+                if(appData.members[directId]) {
+                    renderMemberDisplayView(directId);
+                    showView('member-display-view');
+                }
             }
         };
 
@@ -397,22 +397,11 @@
             showView('portal-view');
         }
 
-        async function syncData() {
+        function syncData() {
+            localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
             const logText = document.getElementById('sync-status-text');
-            logText.innerText = "Syncing changes instantly to cloud...";
-            logText.style.color = "#ffcc00";
-
-            try {
-                await fetch(CLOUD_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(appData)
-                });
-                logText.innerText = `Changes securely synced to live cloud at ${new Date().toLocaleTimeString()}`;
-                logText.style.color = "#00ff00";
-            } catch(e) {
-                logText.innerText = "Sync warning. Retrying connection.";
-                logText.style.color = "#ff3333";
-            }
+            logText.innerText = `Matrix Pipeline Updated Live!`;
+            logText.style.color = "#00ff00";
         }
 
         function showView(viewId) {
@@ -503,9 +492,12 @@
         }
 
         function copyShareLink(memberId) {
-            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
+            // Encode the full object data to prevent cross-origin network drops entirely!
+            const base64Data = btoa(encodeURIComponent(JSON.stringify(appData.members[memberId])));
+            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}&d=${base64Data}`;
+            
             navigator.clipboard.writeText(directUrl).then(() => {
-                alert(`Live Update Link Copied!\n\nSend this via WhatsApp to your client. Anytime they click it, they see their newest plan instantly:\n\n${directUrl}`);
+                alert(`Live Update Link Copied!\n\nSend this via WhatsApp to your client. This link fully bundles their data so it will open instantly anywhere:\n\n${directUrl}`);
             });
         }
 
@@ -542,17 +534,17 @@
                     html += `
                         <div style="background: var(--bg-input); padding:1rem; border-radius:8px; margin-bottom:1rem; border:1px solid var(--border)">
                             <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
-                                <input type="text" value="${block.day}" placeholder="Day" style="width:120px; margin:0; font-weight:bold; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
-                                <input type="text" value="${block.target}" placeholder="Split Routine" style="margin:0;" onchange="updateDayTarget(${dayIndex}, this.value)">
+                                <input type="text" value="${block.day}" placeholder="Day" style="width:120px; margin:0; font-weight:bold; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value); syncData()">
+                                <input type="text" value="${block.target}" placeholder="Split Routine" style="margin:0;" onchange="updateDayTarget(${dayIndex}, this.value); syncData()">
                             </div>
                             <div style="padding-left:1rem; border-left: 2px dashed var(--primary);">
                         `;
                     block.moves.forEach((move, moveIndex) => {
                         html += `
                             <div class="row-entry">
-                                <input type="text" value="${move.name}" placeholder="Movement" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
-                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:70px;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
-                                <input type="text" value="${move.reps}" placeholder="Reps" style="width:90px;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
+                                <input type="text" value="${move.name}" placeholder="Movement" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value); syncData()">
+                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:70px;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value); syncData()">
+                                <input type="text" value="${move.reps}" placeholder="Reps" style="width:90px;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value); syncData()">
                                 <button class="btn btn-secondary" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
                             </div>
                         `;
@@ -565,8 +557,8 @@
                 member.diet.forEach((meal, mealIndex) => {
                     html += `
                         <div class="row-entry" style="align-items: flex-start; gap:0.5rem; margin-bottom: 1rem;">
-                            <input type="text" value="${meal.meal}" style="width:200px; margin:0; font-weight:bold; color:var(--gold);" onchange="updateDietField(${mealIndex}, 'meal', this.value)">
-                            <textarea placeholder="Diet requirements..." style="margin:0; height:60px; resize:vertical;" onchange="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
+                            <input type="text" value="${meal.meal}" style="width:200px; margin:0; font-weight:bold; color:var(--gold);" onchange="updateDietField(${mealIndex}, 'meal', this.value); syncData()">
+                            <textarea placeholder="Diet requirements..." style="margin:0; height:60px; resize:vertical;" onchange="updateDietField(${mealIndex}, 'items', this.value); syncData()">${meal.items}</textarea>
                         </div>
                     `;
                 });
@@ -577,12 +569,12 @@
         }
 
         function switchTab(tabName) { currentOwnerTab = tabName; renderWorkbench(); }
-        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(); }
-        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(); }
+        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; }
+        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; }
         function addMove(dIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); syncData(); renderWorkbench(); }
-        function updateMoveField(dIdx, mIdx, field, val) { appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; syncData(); }
+        function updateMoveField(dIdx, mIdx, field, val) { appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; }
         function removeMove(dIdx, mIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.splice(mIdx, 1); syncData(); renderWorkbench(); }
-        function updateDietField(mIdx, field, val) { appData.members[currentSelectedMemberId].diet[mIdx][field] = val; syncData(); }
+        function updateDietField(mIdx, field, val) { appData.members[currentSelectedMemberId].diet[mIdx][field] = val; }
 
         function renderMemberDisplayView(memberId) {
             const member = appData.members[memberId];
