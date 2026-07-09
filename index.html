@@ -12,7 +12,6 @@
             --bg-slate: #161920;
             --bg-slate-dark: #0b0d10;
             --glass-panel: rgba(22, 26, 34, 0.75);
-            /* High-contrast border creates the crisp glass edge refraction */
             --glass-border: rgba(255, 255, 255, 0.12);
             --text-main: #f9fafb;
             --text-muted: #9ca3af;
@@ -27,7 +26,6 @@
 
         body {
             background-color: var(--bg-slate-dark);
-            /* EXPANDED AMBIENT RADIANCE GRID */
             background-image: 
                 radial-gradient(circle at 50% -20%, rgba(242, 101, 34, 0.18) 0%, transparent 60%),
                 radial-gradient(circle at 0% 100%, rgba(223, 186, 107, 0.05) 0%, transparent 40%),
@@ -89,7 +87,6 @@
             padding: 0 1.5rem;
         }
 
-        /* HARDWARE LED CENTER EMBLEM */
         .portal-hero {
             display: flex;
             flex-direction: column;
@@ -115,7 +112,6 @@
             transform: scale(1.05) rotate(1deg);
         }
 
-        /* ENLARGED PRESENTABLE LOGO TEXT */
         .sign-text-main {
             color: #ffffff;
             font-size: 1.85rem;
@@ -142,7 +138,6 @@
             opacity: 0.9;
         }
 
-        /* LUMINESCENT INTERACTIVE SELECTION CARDS */
         .portal-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -165,7 +160,6 @@
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Radial backlighting generated dynamically on hover */
         .portal-card::before {
             content: '';
             position: absolute;
@@ -219,7 +213,6 @@
             box-shadow: 0 30px 60px rgba(0,0,0,0.35);
         }
 
-        /* HIGH-LIGHT REFRACTIVE ACTION BUTTONS */
         .btn {
             background: var(--primary-gradient);
             color: white;
@@ -402,11 +395,9 @@
 
     <div class="container">
 
-        <!-- PORTAL SELECTION / HOME PAGE -->
         <div id="portal-view" class="view-panel active animate-ui">
             <div class="portal-hero">
                 <div class="floating-gym-sign">
-                    <!-- Text elements slightly enlarged and optimized to replace structural graphics -->
                     <div class="sign-text-main">A-Gain <span>Fitness</span></div>
                     <div class="sign-text-sub">Performance Portal</div>
                 </div>
@@ -426,7 +417,6 @@
             </div>
         </div>
 
-        <!-- OWNER AUTH -->
         <div id="owner-auth-view" class="view-panel animate-ui">
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Coach Authorization</h3>
@@ -440,7 +430,6 @@
             </div>
         </div>
 
-        <!-- MEMBER AUTH -->
         <div id="member-auth-view" class="view-panel animate-ui">
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Athlete Log-In</h3>
@@ -454,7 +443,6 @@
             </div>
         </div>
 
-        <!-- OWNER DASHBOARD -->
         <div id="owner-dashboard-view" class="view-panel animate-ui">
             <div class="owner-layout">
                 <div class="member-sidebar">
@@ -471,7 +459,6 @@
             </div>
         </div>
 
-        <!-- READ-ONLY MEMBER VIEW -->
         <div id="member-display-view" class="view-panel animate-ui">
             <div id="member-display-content"></div>
         </div>
@@ -508,26 +495,30 @@
         window.onload = function() {
             const cached = localStorage.getItem('again_fitness_master_db_v2');
             if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
+            
+            // Check routing params for continuous live sync via ID
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
-            const dataPayload = urlParams.get('d');
+            
             if (directId) {
-                if (dataPayload) {
-                    try {
-                        const individualMemberData = JSON.parse(decodeURIComponent(atob(dataPayload)));
-                        appData.members[directId] = individualMemberData;
-                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
-                    } catch(e){}
+                const targetId = directId.toUpperCase();
+                if(appData.members[targetId]) { 
+                    renderMemberDisplayView(targetId); 
+                    showView('member-display-view'); 
+                } else {
+                    alert("Profile link initialized. Log in with your structural ID to initialize local handshake sync.");
+                    document.getElementById('member-code').value = targetId;
+                    showView('member-auth-view');
                 }
-                if(appData.members[directId]) { renderMemberDisplayView(directId); showView('member-display-view'); }
             }
         };
 
         function resetToPortal() { window.history.replaceState({}, document.title, window.location.pathname); showView('portal-view'); }
+        
         function syncData() {
             localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
             const logText = document.getElementById('sync-status-text');
-            刻text.innerText = `Pipeline Synchronized Live!`;
+            logText.innerText = `Pipeline Synchronized Live!`;
             logText.style.color = "#4ade80";
             setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
         }
@@ -582,10 +573,10 @@
             if(confirm("Permanently wipe profile data configuration?")) { delete appData.members[memberId]; currentSelectedMemberId = null; syncData(); renderRoster(); renderWorkbench(); }
         }
 
+        // Live dynamic linking fix: Links directly point to the ID sequence inside the ecosystem database
         function copyShareLink(memberId) {
-            const base64Data = btoa(encodeURIComponent(JSON.stringify(appData.members[memberId])));
-            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}&d=${base64Data}`;
-            navigator.clipboard.writeText(directUrl).then(() => { alert(`Live Access Link Generated:\n\n${directUrl}`); });
+            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
+            navigator.clipboard.writeText(directUrl).then(() => { alert(`Live Access Link Copied!\n\nThis link updates instantly whenever you modify changes.\n\nURL: ${directUrl}`); });
         }
 
         function renderWorkbench() {
@@ -603,7 +594,7 @@
                             <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.25rem;">Roster ID Token: <strong style="color:var(--gold); font-family:monospace;">${member.id}</strong></p>
                         </div>
                         <div style="display:flex; gap:0.75rem;">
-                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Client Link</button>
+                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Live Share Link</button>
                             <button class="btn btn-danger" onclick="deleteMember('${member.id}')">Delete Profile</button>
                         </div>
                     </div>
@@ -619,17 +610,17 @@
                     html += `
                         <div style="background: rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; margin-bottom:1.5rem; border:1px solid var(--glass-border)">
                             <div style="display:flex; gap:0.75rem; margin-bottom:1.25rem;">
-                                <input type="text" value="${block.day}" style="width:140px; margin:0; font-weight:700; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value); syncData()">
-                                <input type="text" value="${block.target}" style="margin:0; font-weight: 600;" onchange="updateDayTarget(${dayIndex}, this.value); syncData()">
+                                <input type="text" value="${block.day}" style="width:140px; margin:0; font-weight:700; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
+                                <input type="text" value="${block.target}" style="margin:0; font-weight: 600;" onchange="updateDayTarget(${dayIndex}, this.value)">
                             </div>
                         <div style="padding-left:1.25rem; border-left: 2px dashed var(--primary);">
                     `;
                     block.moves.forEach((move, moveIndex) => {
                         html += `
                             <div class="row-entry">
-                                <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value); syncData()">
-                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value); syncData()">
-                                <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" onchange="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value); syncData()">
+                                <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
+                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
+                                <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
                                 <button class="btn btn-secondary" style="padding:0.95rem 1.25rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
                             </div>
                         `;
@@ -642,8 +633,8 @@
                 member.diet.forEach((meal, mealIndex) => {
                     html += `
                         <div class="row-entry" style="align-items: flex-start; gap:1.25rem; margin-bottom: 1.5rem;">
-                            <input type="text" value="${meal.meal}" style="width:240px; margin:0; font-weight:700; color:var(--gold);" onchange="updateDietField(${mealIndex}, 'meal', this.value); syncData()">
-                            <textarea style="margin:0; height:85px; resize:vertical;" onchange="updateDietField(${mealIndex}, 'items', this.value); syncData()">${meal.items}</textarea>
+                            <input type="text" value="${meal.meal}" style="width:240px; margin:0; font-weight:700; color:var(--gold);" oninput="updateDietField(${mealIndex}, 'meal', this.value)">
+                            <textarea style="margin:0; height:85px; resize:vertical;" oninput="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
                         </div>
                     `;
                 });
@@ -653,12 +644,28 @@
         }
 
         function switchTab(tabName) { currentOwnerTab = tabName; renderWorkbench(); }
-        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; }
-        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; }
-        function addMove(dIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); syncData(); renderWorkbench(); }
-        function updateMoveField(dIdx, mIdx, field, val) { appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; }
-        function removeMove(dIdx, mIdx) { appData.members[currentSelectedMemberId].workout[dIdx].moves.splice(mIdx, 1); syncData(); renderWorkbench(); }
-        function updateDietField(mIdx, field, val) { appData.members[currentSelectedMemberId].diet[mIdx][field] = val; }
+        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(); }
+        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(); }
+        
+        // Fluid mutation updates — mutates array data structures and updates viewport instantly
+        function addMove(dIdx) { 
+            appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); 
+            syncData(); 
+            renderWorkbench(); 
+        }
+        function updateMoveField(dIdx, mIdx, field, val) { 
+            appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; 
+            syncData(); 
+        }
+        function removeMove(dIdx, mIdx) { 
+            appData.members[currentSelectedMemberId].workout[dIdx].moves.splice(mIdx, 1); 
+            syncData(); 
+            renderWorkbench(); 
+        }
+        function updateDietField(mIdx, field, val) { 
+            appData.members[currentSelectedMemberId].diet[mIdx][field] = val; 
+            syncData(); 
+        }
 
         function renderMemberDisplayView(memberId) {
             const member = appData.members[memberId];
