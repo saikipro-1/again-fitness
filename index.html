@@ -496,7 +496,6 @@
             const cached = localStorage.getItem('again_fitness_master_db_v2');
             if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
             
-            // Check routing params for continuous live sync via ID
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
             
@@ -573,7 +572,6 @@
             if(confirm("Permanently wipe profile data configuration?")) { delete appData.members[memberId]; currentSelectedMemberId = null; syncData(); renderRoster(); renderWorkbench(); }
         }
 
-        // Live dynamic linking fix: Links directly point to the ID sequence inside the ecosystem database
         function copyShareLink(memberId) {
             const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
             navigator.clipboard.writeText(directUrl).then(() => { alert(`Live Access Link Copied!\n\nThis link updates instantly whenever you modify changes.\n\nURL: ${directUrl}`); });
@@ -647,7 +645,6 @@
         function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(); }
         function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(); }
         
-        // Fluid mutation updates — mutates array data structures and updates viewport instantly
         function addMove(dIdx) { 
             appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); 
             syncData(); 
