@@ -98,8 +98,8 @@
         }
 
         .floating-gym-sign {
-            width: 230px;
-            height: 230px;
+            width: 250px;
+            height: 250px;
             border-radius: 50%;
             background: radial-gradient(circle at 35% 35%, #232935 0%, #0f1217 100%);
             border: 3px solid rgba(242, 101, 34, 0.4);
@@ -107,7 +107,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 1.5rem;
+            padding: 2rem;
             animation: ambientLedPulse 5s infinite ease-in-out;
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -115,21 +115,31 @@
             transform: scale(1.05) rotate(1deg);
         }
 
+        /* ENLARGED PRESENTABLE LOGO TEXT */
         .sign-text-main {
             color: #ffffff;
-            font-size: 1.35rem;
-            font-weight: 800;
+            font-size: 1.85rem;
+            font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 10px;
+            letter-spacing: -0.5px;
+            text-align: center;
+            line-height: 1.1;
+        }
+        .sign-text-main span {
+            color: var(--primary);
+            text-shadow: 0 0 25px rgba(242, 101, 34, 0.6);
+            display: block;
+            font-size: 2.1rem;
+            margin-top: 2px;
         }
         .sign-text-sub {
             color: var(--gold);
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 4px;
+            letter-spacing: 3px;
+            margin-top: 12px;
+            opacity: 0.9;
         }
 
         /* LUMINESCENT INTERACTIVE SELECTION CARDS */
@@ -396,16 +406,8 @@
         <div id="portal-view" class="view-panel active animate-ui">
             <div class="portal-hero">
                 <div class="floating-gym-sign">
-                    <svg style="width:65%; height:50%;" viewBox="0 0 100 100">
-                        <defs>
-                            <linearGradient id="bGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#ffffff" /><stop offset="100%" stop-color="#64748b" />
-                            </linearGradient>
-                        </defs>
-                        <path d="M50 12 L18 82 L32 82 L50 44 L68 82 L82 82 Z" fill="url(#bGrad)" />
-                        <path d="M30 64 L70 64 L64 53 L36 53 Z" fill="#334155" />
-                    </svg>
-                    <div class="sign-text-main">A-Gain Fitness</div>
+                    <!-- Text elements slightly enlarged and optimized to replace structural graphics -->
+                    <div class="sign-text-main">A-Gain <span>Fitness</span></div>
                     <div class="sign-text-sub">Performance Portal</div>
                 </div>
             </div>
@@ -525,7 +527,7 @@
         function syncData() {
             localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
             const logText = document.getElementById('sync-status-text');
-            logText.innerText = `Pipeline Synchronized Live!`;
+            刻text.innerText = `Pipeline Synchronized Live!`;
             logText.style.color = "#4ade80";
             setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
         }
@@ -678,20 +680,35 @@
                     html += `<p style="color:var(--text-muted); font-size:0.95rem; margin-top:0.75rem; font-style:italic;">Rest day variant allocated by coach structure.</p>`;
                 } else {
                     html += `<table>
-                            <thead><tr><th>Movement Exercise Spec</th><th style="width:100px;">Sets</th><th style="width:140px;">Reps Threshold</th></tr></thead><tbody>`;
+                            <thead><tr><th>Movement Exercise Spec</th><th style="width:100px;">Sets</th><th style="width:120px;">Reps Range</th></tr></thead>
+                            <tbody>`;
                     day.moves.forEach(move => {
-                        html += `<tr><td style="font-weight:600;">${move.name || 'Structural Integration Movement'}</td><td style="color:var(--gold); font-family:monospace; font-weight:700; font-size:1.15rem;">${move.sets || '-'}</td><td style="color:var(--text-muted); font-family:monospace;">${move.reps || '-'}</td></tr>`;
+                        html += `<tr>
+                            <td style="font-weight:600; color:#ffffff;">${move.name || '—'}</td>
+                            <td style="color:var(--gold); font-weight:600;">${move.sets || '—'}</td>
+                            <td style="color:var(--text-muted);">${move.reps || '—'}</td>
+                        </tr>`;
                     });
                     html += `</tbody></table>`;
                 }
                 html += `</div>`;
             });
 
-            html += `</div><div class="card"><h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🥗 SPECCED NUTRITIONAL MACRO DIETS</h3>`;
+            html += `</div>
+                <div class="card">
+                    <h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🥗 CUSTOM NUTRITIONAL MACROS PLAN</h3>`;
+            
             member.diet.forEach(meal => {
-                html += `<div style="display:flex; margin-bottom:1.75rem; padding-bottom:1.75rem; border-bottom:1px solid var(--glass-border); flex-wrap:wrap; gap:1rem;"><div style="font-weight:700; width:200px; color:var(--primary); text-transform:uppercase; font-size:0.9rem; letter-spacing:0.5px;">${meal.meal}</div><div style="flex:1; color:#fff; min-width:280px; font-size:1.05rem; line-height:1.6;">${meal.items ? meal.items.replace(/\n/g, '<br>') : 'Awaiting profile update logs.'}</div></div>`;
+                html += `
+                    <div style="margin-bottom:1.5rem; background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; border-left: 4px solid var(--gold); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
+                        <h4 style="font-size:1.15rem; font-weight:700; color:#ffffff; margin-bottom:0.5rem;">${meal.meal}</h4>
+                        <p style="color:var(--text-main); font-size:0.95rem; line-height:1.6; white-space:pre-wrap;">${meal.items || 'No nutritional notes scheduled for this window.'}</p>
+                    </div>
+                `;
             });
-            html += `</div>`; displayBox.innerHTML = html;
+
+            html += `</div>`;
+            displayBox.innerHTML = html;
         }
     </script>
 </body>
