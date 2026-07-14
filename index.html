@@ -211,6 +211,7 @@
             border-radius: 24px;
             padding: 3rem;
             box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+            margin-bottom: 2rem;
         }
 
         .btn {
@@ -257,7 +258,7 @@
             color: white;
             border-radius: 12px;
             margin-top: 0.5rem;
-            margin-bottom: 1.75rem;
+            margin-bottom: 1.25rem;
             font-size: 1rem;
             transition: all 0.3s;
         }
@@ -283,6 +284,7 @@
             border: 1px solid var(--glass-border);
             border-radius: 24px;
             padding: 2rem;
+            height: fit-content;
         }
 
         .member-item {
@@ -379,6 +381,37 @@
             justify-content: space-between;
             z-index: 100;
         }
+
+        /* Metrics grid styling */
+        .identity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .avatar-uploader {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px dashed var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            background: rgba(0,0,0,0.3);
+            position: relative;
+            transition: all 0.3s;
+        }
+        .avatar-uploader:hover {
+            border-color: var(--primary);
+        }
+        .avatar-uploader img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
@@ -471,48 +504,51 @@
     </div>
 
     <script>
-        const defaultWorkoutStructure = () => [
-            { day: "Monday", target: "Push Day Split", moves: [] },
-            { day: "Tuesday", target: "Pull Day Split", moves: [] },
-            { day: "Wednesday", target: "Legs Split Complex", moves: [] },
-            { day: "Thursday", target: "Shoulders Focus", moves: [] },
-            { day: "Friday", target: "Upper Body Hypertrophy Focus", moves: [] },
-            { day: "Saturday", target: "Engine Conditioning", moves: [] }
-        ];
-
-        const defaultDietStructure = () => [
-            { meal: "Breakfast", items: "" },
-            { meal: "Pre-Workout Intake", items: "" },
-            { meal: "Post-Workout Intake", items: "" },
-            { meal: "Lunch Structure", items: "" },
-            { meal: "Dinner Structure", items: "" }
-        ];
-
+        // Data Structures
         let appData = { ownerPin: "1234", members: {} };
         let currentSelectedMemberId = null;
-        let currentOwnerTab = 'workout';
+        let currentOwnerTab = 'identity'; // Start tab at Profile Identification
 
         window.onload = function() {
+            // Retrieve trainer master db from localstorage
             const cached = localStorage.getItem('again_fitness_master_db_v2');
             if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
             
+            // Check if user clicked a share link
             const urlParams = new URLSearchParams(window.location.search);
+            const rawData = urlParams.get('p');
             const directId = urlParams.get('id');
+
+            // FIX: Decode embedded plan from URL data parameter, so clients do not face error loading their profile.
+            if (rawData) {
+                try {
+                    const decryptedData = JSON.parse(atob(rawData));
+                    renderMemberDisplayView(decryptedData, true);
+                    showView('member-display-view');
+                    return;
+                } catch(e) {
+                    console.error("Payload decoding failed", e);
+                }
+            }
             
+            // Fallback back to standard Local Handshake if loaded from Trainer's browser database
             if (directId) {
                 const targetId = directId.toUpperCase();
                 if(appData.members[targetId]) { 
-                    renderMemberDisplayView(targetId); 
+                    renderMemberDisplayView(appData.members[targetId], false); 
                     showView('member-display-view'); 
                 } else {
-                    alert("Profile link initialized. Log in with your structural ID to initialize local handshake sync.");
+                    alert("Handshake profile code required to look up local offline database.");
                     document.getElementById('member-code').value = targetId;
                     showView('member-auth-view');
                 }
             }
         };
 
-        function resetToPortal() { window.history.replaceState({}, document.title, window.location.pathname); showView('portal-view'); }
+        function resetToPortal() { 
+            window.history.replaceState({}, document.title, window.location.pathname); 
+            showView('portal-view'); 
+        }
         
         function syncData() {
             localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
@@ -543,8 +579,12 @@
 
         function verifyMemberCode() {
             const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
-            if(appData.members[targetCode]) { renderMemberDisplayView(targetCode); showView('member-display-view'); } 
-            else { document.getElementById('member-auth-error').style.display = 'block'; }
+            if(appData.members[targetCode]) { 
+                renderMemberDisplayView(appData.members[targetCode], false); 
+                showView('member-display-view'); 
+            } else { 
+                document.getElementById('member-auth-error').style.display = 'block'; 
+            }
         }
 
         function renderRoster() {
@@ -564,17 +604,72 @@
             const name = inputField.value.trim();
             if(!name) return;
             const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
-            appData.members[newId] = { id: newId, name: name, workout: defaultWorkoutStructure(), diet: defaultDietStructure() };
-            inputField.value = ''; currentSelectedMemberId = newId; syncData(); renderRoster(); renderWorkbench();
+            
+            // Setup default properties, empty arrays for customizable days & meals
+            appData.members[newId] = { 
+                id: newId, 
+                name: name,
+                height: "",
+                weight: "",
+                bmi: "",
+                goal: "",
+                feesDuration: "",
+                photo: "",
+                workout: [], 
+                diet: [] 
+            };
+            
+            inputField.value = ''; 
+            currentSelectedMemberId = newId; 
+            syncData(); 
+            renderRoster(); 
+            renderWorkbench();
         }
 
         function deleteMember(memberId) {
-            if(confirm("Permanently wipe profile data configuration?")) { delete appData.members[memberId]; currentSelectedMemberId = null; syncData(); renderRoster(); renderWorkbench(); }
+            if(confirm("Permanently wipe profile data configuration?")) { 
+                delete appData.members[memberId]; 
+                currentSelectedMemberId = null; 
+                syncData(); 
+                renderRoster(); 
+                renderWorkbench(); 
+            }
         }
 
+        // FIX: Compile profile payload directly in generated share link so they access securely on independent devices
         function copyShareLink(memberId) {
-            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
-            navigator.clipboard.writeText(directUrl).then(() => { alert(`Live Access Link Copied!\n\nThis link updates instantly whenever you modify changes.\n\nURL: ${directUrl}`); });
+            const profileData = appData.members[memberId];
+            const base64String = btoa(unescape(encodeURIComponent(JSON.stringify(profileData))));
+            const directUrl = `${window.location.origin}${window.location.pathname}?p=${base64String}`;
+            
+            navigator.clipboard.writeText(directUrl).then(() => { 
+                alert(`Instant-Load Athlete Access URL Copied!\n\nThis link contains all profile details and can be opened immediately on any mobile phone!\n\nLink Length: ${directUrl.length} characters.`); 
+            });
+        }
+
+        function calculateBMI(memberId) {
+            const member = appData.members[memberId];
+            if (member.height && member.weight) {
+                const hMeters = member.height / 100;
+                const bmiVal = (member.weight / (hMeters * hMeters)).toFixed(1);
+                member.bmi = bmiVal;
+                document.getElementById('member-bmi-input').value = bmiVal;
+                syncData();
+            }
+        }
+
+        function handlePhotoUpload(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Img = e.target.result;
+                    appData.members[currentSelectedMemberId].photo = base64Img;
+                    document.getElementById('member-avatar-preview').src = base64Img;
+                    syncData();
+                }
+                reader.readAsDataURL(file);
+            }
         }
 
         function renderWorkbench() {
@@ -592,56 +687,141 @@
                             <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.25rem;">Roster ID Token: <strong style="color:var(--gold); font-family:monospace;">${member.id}</strong></p>
                         </div>
                         <div style="display:flex; gap:0.75rem;">
-                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Live Share Link</button>
+                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Shareable Link</button>
                             <button class="btn btn-danger" onclick="deleteMember('${member.id}')">Delete Profile</button>
                         </div>
                     </div>
                     <div class="tabs">
-                        <div class="tab ${currentOwnerTab === 'workout' ? 'active' : ''}" onclick="switchTab('workout')">🏋️‍♂️ Workout Matrix Editor</div>
-                        <div class="tab ${currentOwnerTab === 'diet' ? 'active' : ''}" onclick="switchTab('diet')">🥗 Dietary Macros Editor</div>
+                        <div class="tab ${currentOwnerTab === 'identity' ? 'active' : ''}" onclick="switchTab('identity')">👤 Identity Profile</div>
+                        <div class="tab ${currentOwnerTab === 'workout' ? 'active' : ''}" onclick="switchTab('workout')">🏋️‍♂️ Workout Matrix</div>
+                        <div class="tab ${currentOwnerTab === 'diet' ? 'active' : ''}" onclick="switchTab('diet')">🥗 Dietary Macros</div>
                     </div>
             `;
 
-            if(currentOwnerTab === 'workout') {
-                html += `<div>`;
-                member.workout.forEach((block, dayIndex) => {
-                    html += `
-                        <div style="background: rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; margin-bottom:1.5rem; border:1px solid var(--glass-border)">
-                            <div style="display:flex; gap:0.75rem; margin-bottom:1.25rem;">
-                                <input type="text" value="${block.day}" style="width:140px; margin:0; font-weight:700; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
-                                <input type="text" value="${block.target}" style="margin:0; font-weight: 600;" onchange="updateDayTarget(${dayIndex}, this.value)">
+            if(currentOwnerTab === 'identity') {
+                html += `
+                    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 280px;">
+                            <h3 style="margin-bottom: 1.5rem; color: var(--primary);">Identification & Physical Metrics</h3>
+                            
+                            <label style="font-size: 0.85rem; color: var(--text-muted);">Profile Picture / Physqiue Photo</label>
+                            <div style="display: flex; gap: 1.5rem; align-items: center; margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                                <div class="avatar-uploader" onclick="document.getElementById('photo-file-picker').click()">
+                                    <img id="member-avatar-preview" src="${member.photo || 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%221%22><circle cx=%2212%22 cy=%228%22 r=%224%22/><path d=%22M18 21a6 6 0 0 0-12 0%22/></svg>'}" alt="Face/Physique">
+                                </div>
+                                <button class="btn btn-secondary" onclick="document.getElementById('photo-file-picker').click()">Change Picture</button>
+                                <input type="file" id="photo-file-picker" style="display: none;" accept="image/*" onchange="handlePhotoUpload(this)">
                             </div>
-                        <div style="padding-left:1.25rem; border-left: 2px dashed var(--primary);">
-                    `;
-                    block.moves.forEach((move, moveIndex) => {
+
+                            <div class="identity-grid">
+                                <div>
+                                    <label style="font-size: 0.85rem; color: var(--text-muted);">Height (cm)</label>
+                                    <input type="number" value="${member.height || ''}" placeholder="e.g., 180" oninput="updateIdentityField('height', this.value); calculateBMI('${member.id}');">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem; color: var(--text-muted);">Weight (kg)</label>
+                                    <input type="number" step="0.1" value="${member.weight || ''}" placeholder="e.g., 78.5" oninput="updateIdentityField('weight', this.value); calculateBMI('${member.id}');">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem; color: var(--text-muted);">Calculated BMI</label>
+                                    <input type="text" id="member-bmi-input" value="${member.bmi || ''}" placeholder="Automated value" readonly style="background: rgba(0,0,0,0.3); cursor: not-allowed;">
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 1rem;">
+                                <label style="font-size: 0.85rem; color: var(--text-muted);">Physique Goal</label>
+                                <input type="text" value="${member.goal || ''}" placeholder="e.g., Fat Loss, Lean Muscle Hypertrophy" oninput="updateIdentityField('goal', this.value)">
+                            </div>
+
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-muted);">Subscription Duration / Fee Status</label>
+                                <input type="text" value="${member.feesDuration || ''}" placeholder="e.g., 3 Months (Paid - Expires Dec 31st)" oninput="updateIdentityField('feesDuration', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if(currentOwnerTab === 'workout') {
+                html += `
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                            <h3 style="color: var(--primary);">Custom Days Rotation</h3>
+                            <button class="btn" style="padding: 0.6rem 1.25rem; font-size:0.85rem;" onclick="addWorkoutDay()">➕ Add Workout Day</button>
+                        </div>
+                `;
+                if(!member.workout || member.workout.length === 0) {
+                    html += `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">No custom training days added yet. Click Add Workout Day above to structure schedule.</div>`;
+                } else {
+                    member.workout.forEach((block, dayIndex) => {
                         html += `
-                            <div class="row-entry">
-                                <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
-                                <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
-                                <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
-                                <button class="btn btn-secondary" style="padding:0.95rem 1.25rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
+                            <div style="background: rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; margin-bottom:1.5rem; border:1px solid var(--glass-border)">
+                                <div style="display:flex; gap:0.75rem; margin-bottom:1.25rem; align-items: center;">
+                                    <input type="text" value="${block.day}" placeholder="Day (e.g. Day 1 / Monday)" style="width:160px; margin:0; font-weight:700; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
+                                    <input type="text" value="${block.target}" placeholder="Focus Split Name (e.g. Heavy Push Day Split)" style="margin:0; font-weight: 600;" onchange="updateDayTarget(${dayIndex}, this.value)">
+                                    <button class="btn btn-danger" style="padding: 0.9rem 1.2rem; margin:0;" onclick="removeWorkoutDay(${dayIndex})">✕ Day</button>
+                                </div>
+                            <div style="padding-left:1.25rem; border-left: 2px dashed var(--primary);">
+                        `;
+                        block.moves.forEach((move, moveIndex) => {
+                            html += `
+                                <div class="row-entry">
+                                    <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
+                                    <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
+                                    <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
+                                    <button class="btn btn-secondary" style="padding:0.95rem 1.25rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
+                                </div>
+                            `;
+                        });
+                        html += `<button class="btn btn-secondary" style="font-size:0.85rem; padding:0.5rem 1rem; margin-top:0.75rem;" onclick="addMove(${dayIndex})">➕ Add Exercise Slot</button></div></div>`;
+                    });
+                }
+                html += `</div>`;
+            } else {
+                html += `
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                            <h3 style="color: var(--gold);">Dietary Structure</h3>
+                            <button class="btn btn-gold" style="padding: 0.6rem 1.25rem; font-size:0.85rem;" onclick="addDietMeal()">➕ Add Meal Slot</button>
+                        </div>
+                `;
+                if(!member.diet || member.diet.length === 0) {
+                    html += `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">No dietary layout structured yet. Click Add Meal Slot above to allocate custom nutritional layout.</div>`;
+                } else {
+                    member.diet.forEach((meal, mealIndex) => {
+                        html += `
+                            <div class="row-entry" style="align-items: flex-start; gap:1.25rem; margin-bottom: 1.5rem;">
+                                <input type="text" value="${meal.meal}" placeholder="Meal Type (e.g., Post-Workout Intake)" style="width:240px; margin:0; font-weight:700; color:var(--gold);" oninput="updateDietField(${mealIndex}, 'meal', this.value)">
+                                <textarea style="margin:0; height:85px; resize:vertical;" placeholder="Insert metrics, macros or custom ingredients breakdown..." oninput="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
+                                <button class="btn btn-danger" style="padding:0.95rem 1.25rem; margin:0; font-size:0.9rem;" onclick="removeDietMeal(${mealIndex})">✕</button>
                             </div>
                         `;
                     });
-                    html += `<button class="btn btn-secondary" style="font-size:0.85rem; padding:0.5rem 1rem; margin-top:0.75rem;" onclick="addMove(${dayIndex})">➕ Add Exercise Slot</button></div></div>`;
-                });
-                html += `</div>`;
-            } else {
-                html += `<div>`;
-                member.diet.forEach((meal, mealIndex) => {
-                    html += `
-                        <div class="row-entry" style="align-items: flex-start; gap:1.25rem; margin-bottom: 1.5rem;">
-                            <input type="text" value="${meal.meal}" style="width:240px; margin:0; font-weight:700; color:var(--gold);" oninput="updateDietField(${mealIndex}, 'meal', this.value)">
-                            <textarea style="margin:0; height:85px; resize:vertical;" oninput="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
-                        </div>
-                    `;
-                });
+                }
                 html += `</div>`;
             }
             html += `</div>`; container.innerHTML = html;
         }
 
         function switchTab(tabName) { currentOwnerTab = tabName; renderWorkbench(); }
+        
+        function updateIdentityField(field, val) { 
+            appData.members[currentSelectedMemberId][field] = val; 
+            syncData(); 
+        }
+
+        // Custom Weekday Handlers
+        function addWorkoutDay() {
+            if(!appData.members[currentSelectedMemberId].workout) appData.members[currentSelectedMemberId].workout = [];
+            appData.members[currentSelectedMemberId].workout.push({ day: "Workout Day", target: "Split focus spec", moves: [] });
+            syncData();
+            renderWorkbench();
+        }
+        function removeWorkoutDay(dayIdx) {
+            if(confirm("Confirm removing this full routine day block?")) {
+                appData.members[currentSelectedMemberId].workout.splice(dayIdx, 1);
+                syncData();
+                renderWorkbench();
+            }
+        }
         function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(); }
         function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(); }
         
@@ -659,57 +839,120 @@
             syncData(); 
             renderWorkbench(); 
         }
+
+        // Infinite Meals Handlers
+        function addDietMeal() {
+            if(!appData.members[currentSelectedMemberId].diet) appData.members[currentSelectedMemberId].diet = [];
+            appData.members[currentSelectedMemberId].diet.push({ meal: "Meal Slot Name", items: "" });
+            syncData();
+            renderWorkbench();
+        }
+        function removeDietMeal(mealIdx) {
+            appData.members[currentSelectedMemberId].diet.splice(mealIdx, 1);
+            syncData();
+            renderWorkbench();
+        }
         function updateDietField(mIdx, field, val) { 
             appData.members[currentSelectedMemberId].diet[mIdx][field] = val; 
             syncData(); 
         }
 
-        function renderMemberDisplayView(memberId) {
-            const member = appData.members[memberId];
+        // Athlete View Rendering (Client View)
+        function renderMemberDisplayView(member, isEmbeddedPayload = false) {
             const displayBox = document.getElementById('member-display-content');
+            
+            let photoSnippet = '';
+            if (member.photo) {
+                photoSnippet = `
+                    <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
+                        <img src="${member.photo}" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); box-shadow: 0 0 20px rgba(242, 101, 34, 0.4);">
+                    </div>
+                `;
+            }
+
             let html = `
                 <div style="text-align: center; margin-bottom: 3.5rem;">
+                    ${photoSnippet}
                     <p style="text-transform:uppercase; letter-spacing:1.5px; color:var(--gold); font-size:0.9rem; font-weight:600;">Custom Training Profile Portal</p>
-                    <h2 style="font-size:3rem; margin-top:0.35rem; font-weight:800; text-transform: uppercase;">${member.name}</h2>
+                    <h2 style="font-size:3rem; margin-top:0.35rem; font-weight:800; text-transform: uppercase; line-height: 1.1;">${member.name}</h2>
                 </div>
+
+                <div class="card" style="margin-bottom:2.5rem;">
+                    <h3 style="border-bottom:2px solid #5a657a; padding-bottom:0.75rem; margin-bottom:1.5rem; color:#f3f4f6; font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">👤 ATHLETE STATS DETAILS</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem;">
+                        <div>
+                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">HEIGHT</span>
+                            <strong style="font-size: 1.25rem; color: var(--text-main);">${member.height ? member.height + ' cm' : '—'}</strong>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">WEIGHT</span>
+                            <strong style="font-size: 1.25rem; color: var(--text-main);">${member.weight ? member.weight + ' kg' : '—'}</strong>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">BMI VALUE</span>
+                            <strong style="font-size: 1.25rem; color: var(--gold);">${member.bmi ? member.bmi : '—'}</strong>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">PHYSIQUE GOAL</span>
+                            <strong style="font-size: 1.15rem; color: var(--primary);">${member.goal ? member.goal : '—'}</strong>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">EXPIRE DURATION</span>
+                            <strong style="font-size: 1.15rem; color: #34d399;">${member.feesDuration ? member.feesDuration : 'Active Setup'}</strong>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card" style="margin-bottom:2.5rem;">
                     <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--primary); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🏋️‍♂️ TARGET ROTATION ROUTINE WORKOUT SHEET</h3>
             `;
-            member.workout.forEach(day => {
-                html += `
-                    <div style="margin-bottom:1.75rem; background:rgba(0,0,0,0.2); padding:1.75rem; border-radius:16px; border-left: 4px solid var(--primary); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
-                        <h4 style="font-size:1.25rem; font-weight:700;">${day.day} <span style="font-weight:400; font-size:1.05rem; color:var(--text-muted);">— ${day.target}</span></h4>
-                `;
-                if(day.moves.length === 0) {
-                    html += `<p style="color:var(--text-muted); font-size:0.95rem; margin-top:0.75rem; font-style:italic;">Rest day variant allocated by coach structure.</p>`;
-                } else {
-                    html += `<table>
-                            <thead><tr><th>Movement Exercise Spec</th><th style="width:100px;">Sets</th><th style="width:120px;">Reps Range</th></tr></thead>
-                            <tbody>`;
-                    day.moves.forEach(move => {
-                        html += `<tr>
-                            <td style="font-weight:600; color:#ffffff;">${move.name || '—'}</td>
-                            <td style="color:var(--gold); font-weight:600;">${move.sets || '—'}</td>
-                            <td style="color:var(--text-muted);">${move.reps || '—'}</td>
-                        </tr>`;
-                    });
-                    html += `</tbody></table>`;
-                }
-                html += `</div>`;
-            });
 
-            html += `</div>
+            if(!member.workout || member.workout.length === 0) {
+                html += `<p style="color:var(--text-muted); font-size:0.95rem; font-style:italic; text-align:center; padding: 2rem 0;">No scheduled split days are registered currently.</p>`;
+            } else {
+                member.workout.forEach(day => {
+                    html += `
+                        <div style="margin-bottom:1.75rem; background:rgba(0,0,0,0.2); padding:1.75rem; border-radius:16px; border-left: 4px solid var(--primary); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
+                            <h4 style="font-size:1.25rem; font-weight:700;">${day.day} <span style="font-weight:400; font-size:1.05rem; color:var(--text-muted);">— ${day.target}</span></h4>
+                    `;
+                    if(!day.moves || day.moves.length === 0) {
+                        html += `<p style="color:var(--text-muted); font-size:0.95rem; margin-top:0.75rem; font-style:italic;">Rest day or customized layout designated by coach structure.</p>`;
+                    } else {
+                        html += `<table>
+                                <thead><tr><th>Movement Exercise Spec</th><th style="width:100px;">Sets</th><th style="width:120px;">Reps Range</th></tr></thead>
+                                <tbody>`;
+                        day.moves.forEach(move => {
+                            html += `<tr>
+                                <td style="font-weight:600; color:#ffffff;">${move.name || '—'}</td>
+                                <td style="color:var(--gold); font-weight:600;">${move.sets || '—'}</td>
+                                <td style="color:var(--text-muted);">${move.reps || '—'}</td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table>`;
+                    }
+                    html += `</div>`;
+                });
+            }
+
+            // Diet Structure
+            html += `
+                </div>
                 <div class="card">
-                    <h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🥗 CUSTOM NUTRITIONAL MACROS PLAN</h3>`;
-            
-            member.diet.forEach(meal => {
-                html += `
-                    <div style="margin-bottom:1.5rem; background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; border-left: 4px solid var(--gold); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
-                        <h4 style="font-size:1.15rem; font-weight:700; color:#ffffff; margin-bottom:0.5rem;">${meal.meal}</h4>
-                        <p style="color:var(--text-main); font-size:0.95rem; line-height:1.6; white-space:pre-wrap;">${meal.items || 'No nutritional notes scheduled for this window.'}</p>
-                    </div>
-                `;
-            });
+                    <h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🥗 CUSTOM DIETARY MACROS PLAN</h3>
+            `;
+
+            if(!member.diet || member.diet.length === 0) {
+                html += `<p style="color:var(--text-muted); font-size:0.95rem; font-style:italic; text-align:center; padding: 2rem 0;">No customized dietary plan currently saved.</p>`;
+            } else {
+                member.diet.forEach(meal => {
+                    html += `
+                        <div style="margin-bottom:1.75rem; background:rgba(0,0,0,0.2); padding:1.75rem; border-radius:16px; border-left: 4px solid var(--gold); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
+                            <h4 style="font-size:1.2rem; font-weight:700; margin-bottom:0.75rem; color:#ffffff;">${meal.meal}</h4>
+                            <p style="color:var(--text-muted); font-size:1rem; line-height:1.6; white-space: pre-wrap;">${meal.items || 'Rest/Nutritional target unspecified.'}</p>
+                        </div>
+                    `;
+                });
+            }
 
             html += `</div>`;
             displayBox.innerHTML = html;
