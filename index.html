@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A-Gain Fitness | Elite Athlete Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary: #f26522; 
@@ -382,6 +383,7 @@
             z-index: 100;
         }
 
+        /* Metrics grid styling */
         .identity-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -417,7 +419,7 @@
 
     <header>
         <div>
-            <div class="brand-title" style="cursor: pointer;" onclick="resetToPortal()">A-Gain <span>Fitness</span></div>
+            <div class="brand-title">A-Gain <span>Fitness</span></div>
             <div class="brand-slogan">The commitment is ours. The Gain is yours.</div>
         </div>
         <div>
@@ -503,107 +505,110 @@
     </div>
 
     <script>
-        // Dedicated free high-performance serverless KV storage bucket endpoint
-        const SYNC_URL = "https://kvdb.io/979u7A7Z7f9rS5f8N8k8L2/again_fitness_db_v3"; 
-        
+        // ==========================================
+        // SUPABASE REALTIME CONFIGURATION INTEGRATION
+        // ==========================================
+        const SUPABASE_URL = "https://xirjnnohbudwaxftyprd.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_fPrRhnXxbglFVhHRQDE2sA_GC_2ouPX";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         let appData = { ownerPin: "1234", members: {} };
         let currentSelectedMemberId = null;
         let currentOwnerTab = 'identity';
-
-        let syncTimeout = null;
-        function debouncedSync() {
-            clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(() => {
-                syncDataCloud();
-            }, 1000); 
-        }
+        let activeRealtimeChannel = null;
+        let debounceTimeout = null;
 
         window.onload = async function() {
-            await pullData();
-
-            // Direct routing parsing logic (e.g. yoursite.html?id=AGN-1234)
+            // Check for explicit local custom trainer PIN backups
+            const cachedPin = localStorage.getItem('again_fitness_pin');
+            if(cachedPin) { appData.ownerPin = cachedPin; }
+            
+            // Handle Direct Navigation Routing Systems via Parameters
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
 
             if (directId) {
                 const targetId = directId.toUpperCase();
-                if (appData.members[targetId]) { 
-                    renderMemberDisplayView(appData.members[targetId]); 
-                    showView('member-display-view'); 
+                showStatusText("Loading Remote Matrix...", "var(--gold)");
+                
+                // Fetch single profile data dynamically from database rows
+                const { data, error } = await supabase
+                    .from('athletes')
+                    .select('*')
+                    .eq('id', targetId)
+                    .single();
+
+                if (data && !error) {
+                    renderMemberDisplayView(data.data);
+                    showView('member-display-view');
+                    setupLiveClientSubscription(targetId);
                 } else {
-                    document.getElementById('member-code').value = targetId;
-                    showView('member-auth-view');
+                    alert("Handshake missing. The dynamic profile link provided does not exist.");
+                    resetToPortal();
                 }
             }
         };
 
         function resetToPortal() { 
+            if (activeRealtimeChannel) {
+                supabase.removeChannel(activeRealtimeChannel);
+            }
             window.history.replaceState({}, document.title, window.location.pathname); 
             showView('portal-view'); 
         }
 
-        function syncData() {
-            localStorage.setItem('again_fitness_master_db_v3', JSON.stringify(appData));
-            debouncedSync();
-        }
-
-        async function pullData() {
+        function showStatusText(text, color) {
             const logText = document.getElementById('sync-status-text');
-            logText.innerText = "Syncing with cloud database...";
-            logText.style.color = "var(--gold)";
+            logText.innerText = text;
+            logText.style.color = color;
+        }
+        
+        // Save targeted updates directly into remote tables instead of client cache strings
+        function syncData(memberId) {
+            if (!memberId || !appData.members[memberId]) return;
+            
+            showStatusText("Syncing Changes...", "var(--primary)");
+            
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(async () => {
+                const targetProfile = appData.members[memberId];
+                
+                const { error } = await supabase
+                    .from('athletes')
+                    .upsert({ 
+                        id: memberId, 
+                        data: targetProfile,
+                        updated_at: new Date().toISOString()
+                    });
 
-            try {
-                const response = await fetch(SYNC_URL);
-                if (response.ok) {
-                    const text = await response.text();
-                    if (text && text.trim().length > 0) {
-                        const data = JSON.parse(text);
-                        if (data && data.members) {
-                            appData = data;
-                            localStorage.setItem('again_fitness_master_db_v3', JSON.stringify(appData));
-                            logText.innerText = "Pipeline Synchronized Live!";
-                            logText.style.color = "#4ade80";
-                        }
-                    }
+                if(!error) {
+                    showStatusText("Pipeline Synchronized Live!", "#4ade80");
+                    setTimeout(() => { showStatusText("Status: Connected", "var(--gold)"); }, 2000);
+                } else {
+                    showStatusText("Sync Error!", "#ef4444");
+                    console.error("Supabase Error Context:", error);
                 }
-            } catch (err) {
-                console.warn("Could not reach cloud database, using local backup:", err);
-                const cached = localStorage.getItem('again_fitness_master_db_v3');
-                if (cached) { try { appData = JSON.parse(cached); } catch(e){} }
-                logText.innerText = "Status: Offline (Using Local Backup)";
-                logText.style.color = "#ef4444";
-            }
-            setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 3000);
+            }, 400);
         }
 
-        async function syncDataCloud() {
-            const logText = document.getElementById('sync-status-text');
-            logText.innerText = "Syncing live cloud changes...";
-            logText.style.color = "var(--gold)";
-
-            try {
-                const response = await fetch(SYNC_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(appData)
-                });
-                if (response.ok) {
-                    logText.innerText = "Pipeline Synchronized Live!";
-                    logText.style.color = "#4ade80";
-                }
-            } catch (err) {
-                console.error("Failed to push to cloud DB", err);
-                logText.innerText = "Sync Failed. Retrying...";
-                logText.style.color = "#ef4444";
-            }
-            setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
-        }
-
-        function showView(viewId) {
+        async function showView(viewId) {
             document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
             const element = document.getElementById(viewId);
             element.classList.add('active');
-            if(viewId === 'owner-dashboard-view') { renderRoster(); renderWorkbench(); }
+            
+            if(viewId === 'owner-dashboard-view') { 
+                showStatusText("Hydrating Roster Registry...", "var(--gold)");
+                const { data, error } = await supabase.from('athletes').select('*');
+                if (data && !error) {
+                    appData.members = {};
+                    data.forEach(row => {
+                        appData.members[row.id] = row.data;
+                    });
+                }
+                showStatusText("Status: Connected", "var(--gold)");
+                renderRoster(); 
+                renderWorkbench(); 
+            }
         }
 
         function verifyOwnerPin() {
@@ -615,18 +620,53 @@
             const currentPinCheck = prompt("Verify current PIN:");
             if (currentPinCheck !== appData.ownerPin) { alert("Incorrect matching sequence."); return; }
             const newPin = prompt("Enter new PIN sequence:");
-            if(newPin && newPin.trim().length > 0) { appData.ownerPin = newPin.trim(); syncData(); alert("PIN Saved."); }
+            if(newPin && newPin.trim().length > 0) { 
+                appData.ownerPin = newPin.trim(); 
+                localStorage.setItem('again_fitness_pin', appData.ownerPin);
+                alert("PIN Saved Locally."); 
+            }
         }
 
         async function verifyMemberCode() {
             const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
-            await pullData(); // Pull fresh data to verify existence
-            if(appData.members[targetCode]) { 
-                renderMemberDisplayView(appData.members[targetCode]); 
+            showStatusText("Connecting to Matrix...", "var(--gold)");
+            
+            const { data, error } = await supabase
+                .from('athletes')
+                .select('*')
+                .eq('id', targetCode)
+                .single();
+
+            if(data && !error) { 
+                // Set parameter mapping seamlessly inside navigation window histories
+                window.history.replaceState({}, document.title, `?id=${targetCode}`);
+                renderMemberDisplayView(data.data); 
                 showView('member-display-view'); 
+                setupLiveClientSubscription(targetCode);
             } else { 
                 document.getElementById('member-auth-error').style.display = 'block'; 
             }
+        }
+
+        // Realtime sync module mapping client-side visual viewports instantly
+        function setupLiveClientSubscription(athleteId) {
+            if (activeRealtimeChannel) {
+                supabase.removeChannel(activeRealtimeChannel);
+            }
+
+            activeRealtimeChannel = supabase
+                .channel(`public:athletes:id=eq.${athleteId}`)
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'athletes', 
+                    filter: `id=eq.${athleteId}` 
+                }, (payload) => {
+                    showStatusText("Realtime Sync Captured!", "#4ade80");
+                    renderMemberDisplayView(payload.new.data);
+                    setTimeout(() => { showStatusText("Status: Connected (Live)", "#4ade80"); }, 1500);
+                })
+                .subscribe();
         }
 
         function renderRoster() {
@@ -641,13 +681,13 @@
             });
         }
 
-        function addMember() {
+        async function addMember() {
             const inputField = document.getElementById('new-member-name');
             const name = inputField.value.trim();
             if(!name) return;
             const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
             
-            appData.members[newId] = { 
+            const newProfileObj = { 
                 id: newId, 
                 name: name,
                 height: "",
@@ -659,19 +699,23 @@
                 workout: [], 
                 diet: [] 
             };
+
+            appData.members[newId] = newProfileObj;
+            
+            // Insert instantly directly down Supabase Engine layout
+            await supabase.from('athletes').insert({ id: newId, data: newProfileObj });
             
             inputField.value = ''; 
             currentSelectedMemberId = newId; 
-            syncData(); 
             renderRoster(); 
             renderWorkbench();
         }
 
-        function deleteMember(memberId) {
-            if(confirm("Permanently wipe profile data configuration?")) { 
+        async function deleteMember(memberId) {
+            if(confirm("Permanently wipe profile data configuration from remote database?")) { 
+                await supabase.from('athletes').delete().eq('id', memberId);
                 delete appData.members[memberId]; 
                 currentSelectedMemberId = null; 
-                syncData(); 
                 renderRoster(); 
                 renderWorkbench(); 
             }
@@ -680,7 +724,7 @@
         function copyShareLink(memberId) {
             const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
             navigator.clipboard.writeText(directUrl).then(() => { 
-                alert(`Dynamic Athlete Access URL Copied!\n\nLink: ${directUrl}\n\nWhenever you make changes to this client's workouts or diet in the dashboard, their phone screen will update instantly when they reload the page.`); 
+                alert(`Real-Time Access URL Copied!\n\nClients can view dynamic additions instantly on any phone without manual page reloads:\n\n${directUrl}`); 
             });
         }
 
@@ -691,7 +735,7 @@
                 const bmiVal = (member.weight / (hMeters * hMeters)).toFixed(1);
                 member.bmi = bmiVal;
                 document.getElementById('member-bmi-input').value = bmiVal;
-                syncData();
+                syncData(memberId);
             }
         }
 
@@ -703,7 +747,7 @@
                     const base64Img = e.target.result;
                     appData.members[currentSelectedMemberId].photo = base64Img;
                     document.getElementById('member-avatar-preview').src = base64Img;
-                    syncData();
+                    syncData(currentSelectedMemberId);
                 }
                 reader.readAsDataURL(file);
             }
@@ -772,7 +816,7 @@
 
                             <div>
                                 <label style="font-size: 0.85rem; color: var(--text-muted);">Subscription Duration / Fee Status</label>
-                                <input type="text" value="${member.feesDuration || ''}" placeholder="e.g., 3 Months (Paid - Expires Dec 31st)" oninput="updateIdentityField('feesDuration', this.value)">
+                                <input type="text" value="${member.feesDuration || ''}" placeholder="e.g., 3 Months (Paid)" oninput="updateIdentityField('feesDuration', this.value)">
                             </div>
                         </div>
                     </div>
@@ -792,8 +836,8 @@
                         html += `
                             <div style="background: rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; margin-bottom:1.5rem; border:1px solid var(--glass-border)">
                                 <div style="display:flex; gap:0.75rem; margin-bottom:1.25rem; align-items: center;">
-                                    <input type="text" value="${block.day}" placeholder="Day (e.g. Day 1 / Monday)" style="width:160px; margin:0; font-weight:700; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
-                                    <input type="text" value="${block.target}" placeholder="Focus Split Name (e.g. Heavy Push Day Split)" style="margin:0; font-weight: 600;" onchange="updateDayTarget(${dayIndex}, this.value)">
+                                    <input type="text" value="${block.day}" placeholder="Day (e.g. Day 1)" style="width:160px; margin:0; font-weight:700; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
+                                    <input type="text" value="${block.target}" placeholder="Focus Split Name" style="margin:0; font-weight: 600;" onchange="updateDayTarget(${dayIndex}, this.value)">
                                     <button class="btn btn-danger" style="padding: 0.9rem 1.2rem; margin:0;" onclick="removeWorkoutDay(${dayIndex})">✕ Day</button>
                                 </div>
                             <div style="padding-left:1.25rem; border-left: 2px dashed var(--primary);">
@@ -801,11 +845,11 @@
                         block.moves.forEach((move, moveIndex) => {
                             html += `
                                 <div class="row-entry">
-                                    <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
+                                    <input type="text" value="${move.name}" placeholder="Exercise Description" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
                                     <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
-                                    <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
+                                    <input type="text" value="${move.reps}" placeholder="Reps" style="width:110px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
                                     <button class="btn btn-secondary" style="padding:0.95rem 1.25rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
-                                </div>
+                               </div>
                             `;
                         });
                         html += `<button class="btn btn-secondary" style="font-size:0.85rem; padding:0.5rem 1rem; margin-top:0.75rem;" onclick="addMove(${dayIndex})">➕ Add Exercise Slot</button></div></div>`;
@@ -821,13 +865,13 @@
                         </div>
                 `;
                 if(!member.diet || member.diet.length === 0) {
-                    html += `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">No dietary layout structured yet. Click Add Meal Slot above to allocate custom nutritional layout.</div>`;
+                    html += `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">No dietary layout structured yet. Click Add Meal Slot above.</div>`;
                 } else {
                     member.diet.forEach((meal, mealIndex) => {
                         html += `
                             <div class="row-entry" style="align-items: flex-start; gap:1.25rem; margin-bottom: 1.5rem;">
-                                <input type="text" value="${meal.meal}" placeholder="Meal Type (e.g., Post-Workout Intake)" style="width:240px; margin:0; font-weight:700; color:var(--gold);" oninput="updateDietField(${mealIndex}, 'meal', this.value)">
-                                <textarea style="margin:0; height:85px; resize:vertical;" placeholder="Insert metrics, macros or custom ingredients breakdown..." oninput="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
+                                <input type="text" value="${meal.meal}" placeholder="Meal Type" style="width:240px; margin:0; font-weight:700; color:var(--gold);" oninput="updateDietField(${mealIndex}, 'meal', this.value)">
+                                <textarea style="margin:0; height:85px; resize:vertical;" placeholder="Insert metrics, macros..." oninput="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
                                 <button class="btn btn-danger" style="padding:0.95rem 1.25rem; margin:0; font-size:0.9rem;" onclick="removeDietMeal(${mealIndex})">✕</button>
                             </div>
                         `;
@@ -842,54 +886,54 @@
         
         function updateIdentityField(field, val) { 
             appData.members[currentSelectedMemberId][field] = val; 
-            syncData(); 
+            syncData(currentSelectedMemberId); 
         }
 
         function addWorkoutDay() {
             if(!appData.members[currentSelectedMemberId].workout) appData.members[currentSelectedMemberId].workout = [];
             appData.members[currentSelectedMemberId].workout.push({ day: "Workout Day", target: "Split focus spec", moves: [] });
-            syncData();
+            syncData(currentSelectedMemberId);
             renderWorkbench();
         }
         function removeWorkoutDay(dayIdx) {
             if(confirm("Confirm removing this full routine day block?")) {
                 appData.members[currentSelectedMemberId].workout.splice(dayIdx, 1);
-                syncData();
+                syncData(currentSelectedMemberId);
                 renderWorkbench();
             }
         }
-        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(); }
-        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(); }
+        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(currentSelectedMemberId); }
+        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(currentSelectedMemberId); }
         
         function addMove(dIdx) { 
             appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); 
-            syncData(); 
+            syncData(currentSelectedMemberId); 
             renderWorkbench(); 
         }
         function updateMoveField(dIdx, mIdx, field, val) { 
             appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; 
-            syncData(); 
+            syncData(currentSelectedMemberId); 
         }
         function removeMove(dIdx, mIdx) { 
             appData.members[currentSelectedMemberId].workout[dIdx].moves.splice(mIdx, 1); 
-            syncData(); 
+            syncData(currentSelectedMemberId); 
             renderWorkbench(); 
         }
 
         function addDietMeal() {
             if(!appData.members[currentSelectedMemberId].diet) appData.members[currentSelectedMemberId].diet = [];
             appData.members[currentSelectedMemberId].diet.push({ meal: "Meal Slot Name", items: "" });
-            syncData();
+            syncData(currentSelectedMemberId);
             renderWorkbench();
         }
         function removeDietMeal(mealIdx) {
             appData.members[currentSelectedMemberId].diet.splice(mealIdx, 1);
-            syncData();
+            syncData(currentSelectedMemberId);
             renderWorkbench();
         }
         function updateDietField(mIdx, field, val) { 
             appData.members[currentSelectedMemberId].diet[mIdx][field] = val; 
-            syncData(); 
+            syncData(currentSelectedMemberId); 
         }
 
         function renderMemberDisplayView(member) {
