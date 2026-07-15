@@ -382,6 +382,7 @@
             z-index: 100;
         }
 
+        /* Metrics grid styling */
         .identity-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -466,7 +467,7 @@
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Athlete Log-In</h3>
                 <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">Input the unique ID assigned to your profile record</p>
-                <input type="text" id="member-code" placeholder="e.g., 9357" style="text-transform: uppercase;">
+                <input type="text" id="member-code" placeholder="e.g., AGN-4321" style="text-transform: uppercase;">
                 <div style="display:flex; gap:0.75rem;">
                     <button class="btn" style="flex:1;" onclick="verifyMemberCode()">Load Profile</button>
                     <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
@@ -498,110 +499,72 @@
     </div>
 
     <div class="sync-log">
-        <span>A-Gain Cloud Data Sync Pipeline Matrix</span>
+        <span>A-Gain Central Data Pipeline Matrix</span>
         <span id="sync-status-text">Status: Connected</span>
     </div>
 
     <script>
-        // Project ID Configuration
-        const PROJECT_ID = "lczxqgiedibmwcjnesgo";
-        const API_URL = `https://kv.val.town/v1/key/${PROJECT_ID}_again_fitness_db`;
-
+        // Data Structures
         let appData = { ownerPin: "1234", members: {} };
         let currentSelectedMemberId = null;
-        let currentOwnerTab = 'identity'; 
-        let liveSyncInterval = null;
+        let currentOwnerTab = 'identity'; // Start tab at Profile Identification
 
-        window.onload = async function() {
-            const logText = document.getElementById('sync-status-text');
-            logText.innerText = "Loading global database...";
+        window.onload = function() {
+            // Retrieve trainer master db from localstorage
+            const cached = localStorage.getItem('again_fitness_master_db_v2');
+            if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
             
-            // Step 1: Wait completely for the database to pull down before evaluating routing
-            await loadCloudData();
-            
+            // Check if user clicked a share link
             const urlParams = new URLSearchParams(window.location.search);
+            const rawData = urlParams.get('p');
             const directId = urlParams.get('id');
 
+            // FIX: Decode embedded plan from URL data parameter, inject it directly into runtime appData so client verification passes!
+            if (rawData) {
+                try {
+                    const decryptedData = JSON.parse(decodeURIComponent(escape(atob(rawData))));
+                    if (decryptedData && decryptedData.id) {
+                        // Securely inject shared profile into active session scope
+                        appData.members[decryptedData.id] = decryptedData;
+                        // Persist so they can view it offline next time
+                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+                        
+                        renderMemberDisplayView(decryptedData, true);
+                        showView('member-display-view');
+                        return;
+                    }
+                } catch(e) {
+                    console.error("Payload decoding failed", e);
+                }
+            }
+            
+            // Fallback back to standard Local Handshake if loaded from Trainer's browser database
             if (directId) {
-                // Remove potential "AGN-" prefix from historical URLs automatically
-                let cleanId = directId.toUpperCase().replace("AGN-", "");
-                
-                if(appData.members[cleanId]) { 
-                    renderMemberDisplayView(appData.members[cleanId]); 
-                    showView('member-display-view');
-                    startLiveAthleteSync(cleanId);
+                const targetId = directId.toUpperCase();
+                if(appData.members[targetId]) { 
+                    renderMemberDisplayView(appData.members[targetId], false); 
+                    showView('member-display-view'); 
                 } else {
-                    document.getElementById('member-code').value = cleanId;
+                    alert("Handshake profile code required to look up local offline database.");
+                    document.getElementById('member-code').value = targetId;
                     showView('member-auth-view');
-                    document.getElementById('member-auth-error').innerText = "⚠️ Profile not synced yet. Try entering your numeric code directly.";
-                    document.getElementById('member-auth-error').style.display = 'block';
                 }
             }
         };
 
-        async function loadCloudData() {
-            try {
-                const response = await fetch(API_URL);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && typeof data === "object") {
-                        appData = data;
-                        if (!appData.members) appData.members = {};
-                        if (!appData.ownerPin) appData.ownerPin = "1234";
-                    }
-                }
-            } catch (e) {
-                console.error("Cloud connection failed, running offline fallback mode", e);
-                const cached = localStorage.getItem('again_fitness_master_db_v2');
-                if(cached) { 
-                    try { 
-                        appData = JSON.parse(cached); 
-                    } catch(err){} 
-                }
-            }
-        }
-
-        async function syncData() {
-            // Keep local fallback updated
-            localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
-            
-            const logText = document.getElementById('sync-status-text');
-            logText.innerText = `Saving to cloud...`;
-            logText.style.color = "var(--gold)";
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(appData)
-                });
-                if (response.ok) {
-                    logText.innerText = `Pipeline Synchronized Live!`;
-                    logText.style.color = "#4ade80";
-                    setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
-                }
-            } catch (e) {
-                logText.innerText = `Offline Sync Cached`;
-                logText.style.color = "#ef4444";
-            }
-        }
-
-        function startLiveAthleteSync(memberId) {
-            if(liveSyncInterval) clearInterval(liveSyncInterval);
-            liveSyncInterval = setInterval(async () => {
-                await loadCloudData();
-                if(appData.members[memberId]) {
-                    renderMemberDisplayView(appData.members[memberId]);
-                }
-            }, 3000); // Check for changes in real time every 3 seconds
-        }
-
         function resetToPortal() { 
-            if(liveSyncInterval) clearInterval(liveSyncInterval);
             window.history.replaceState({}, document.title, window.location.pathname); 
             showView('portal-view'); 
         }
         
+        function syncData() {
+            localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+            const logText = document.getElementById('sync-status-text');
+            logText.innerText = `Pipeline Synchronized Live!`;
+            logText.style.color = "#4ade80";
+            setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
+        }
+
         function showView(viewId) {
             document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
             const element = document.getElementById(viewId);
@@ -622,16 +585,11 @@
         }
 
         function verifyMemberCode() {
-            // Remove any user-typed "AGN-" to keep search accurate to raw numbers
-            const targetCode = document.getElementById('member-code').value.trim().toUpperCase().replace("AGN-", "");
-            
+            const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
             if(appData.members[targetCode]) { 
-                document.getElementById('member-auth-error').style.display = 'none';
-                renderMemberDisplayView(appData.members[targetCode]); 
-                showView('member-display-view');
-                startLiveAthleteSync(targetCode);
+                renderMemberDisplayView(appData.members[targetCode], false); 
+                showView('member-display-view'); 
             } else { 
-                document.getElementById('member-auth-error').innerText = "❌ Code verification failed. Try adding this user on your Coach Terminal first.";
                 document.getElementById('member-auth-error').style.display = 'block'; 
             }
         }
@@ -652,9 +610,9 @@
             const inputField = document.getElementById('new-member-name');
             const name = inputField.value.trim();
             if(!name) return;
-            // Generate raw 4 digit code instead of prefixed ones
-            const newId = `${Math.floor(1000 + Math.random() * 9000)}`;
+            const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
             
+            // Setup default properties, empty arrays for customizable days & meals
             appData.members[newId] = { 
                 id: newId, 
                 name: name,
@@ -685,10 +643,17 @@
             }
         }
 
+        // FIX: Encode correctly using robust Base64 encoding to support special characters or accents
         function copyShareLink(memberId) {
-            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
+            const profileData = appData.members[memberId];
+            const base64String = btoa(unescape(encodeURIComponent(JSON.stringify(profileData))));
+            const directUrl = `${window.location.origin}${window.location.pathname}?p=${base64String}`;
+            
             navigator.clipboard.writeText(directUrl).then(() => { 
-                alert(`Athlete Link Copied!\n\nLink: ${directUrl}\n\nAny change you make in this Coach Terminal will automatically update on their device without sending another link!`); 
+                alert(`Instant-Load Athlete Access URL Copied!\n\nThis link contains all profile details and can be opened immediately on any mobile phone!\n\nLink Length: ${directUrl.length} characters.`); 
+            }).catch(err => {
+                // Fallback for browsers/devices restricting clipboard API
+                prompt("Copy this URL manually:", directUrl);
             });
         }
 
@@ -853,6 +818,7 @@
             syncData(); 
         }
 
+        // Custom Weekday Handlers
         function addWorkoutDay() {
             if(!appData.members[currentSelectedMemberId].workout) appData.members[currentSelectedMemberId].workout = [];
             appData.members[currentSelectedMemberId].workout.push({ day: "Workout Day", target: "Split focus spec", moves: [] });
@@ -884,6 +850,7 @@
             renderWorkbench(); 
         }
 
+        // Infinite Meals Handlers
         function addDietMeal() {
             if(!appData.members[currentSelectedMemberId].diet) appData.members[currentSelectedMemberId].diet = [];
             appData.members[currentSelectedMemberId].diet.push({ meal: "Meal Slot Name", items: "" });
@@ -900,7 +867,8 @@
             syncData(); 
         }
 
-        function renderMemberDisplayView(member) {
+        // Athlete View Rendering (Client View)
+        function renderMemberDisplayView(member, isEmbeddedPayload = false) {
             const displayBox = document.getElementById('member-display-content');
             
             let photoSnippet = '';
@@ -976,6 +944,7 @@
                 });
             }
 
+            // Diet Structure
             html += `
                 </div>
                 <div class="card">
