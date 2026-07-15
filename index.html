@@ -466,7 +466,7 @@
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Athlete Log-In</h3>
                 <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">Input the unique ID assigned to your profile record</p>
-                <input type="text" id="member-code" placeholder="e.g., AGN-4321" style="text-transform: uppercase;">
+                <input type="text" id="member-code" placeholder="e.g., 9357" style="text-transform: uppercase;">
                 <div style="display:flex; gap:0.75rem;">
                     <button class="btn" style="flex:1;" onclick="verifyMemberCode()">Load Profile</button>
                     <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
@@ -513,23 +513,28 @@
         let liveSyncInterval = null;
 
         window.onload = async function() {
-            // Initial load from Cloud Architecture
+            const logText = document.getElementById('sync-status-text');
+            logText.innerText = "Loading global database...";
+            
+            // Step 1: Wait completely for the database to pull down before evaluating routing
             await loadCloudData();
             
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
 
             if (directId) {
-                const targetId = directId.toUpperCase();
-                if(appData.members[targetId]) { 
-                    renderMemberDisplayView(appData.members[targetId]); 
+                // Remove potential "AGN-" prefix from historical URLs automatically
+                let cleanId = directId.toUpperCase().replace("AGN-", "");
+                
+                if(appData.members[cleanId]) { 
+                    renderMemberDisplayView(appData.members[cleanId]); 
                     showView('member-display-view');
-                    // Setup polling to watch out for live edits made by the coach in real time
-                    startLiveAthleteSync(targetId);
+                    startLiveAthleteSync(cleanId);
                 } else {
-                    alert("Handshake profile code required to look up live database.");
-                    document.getElementById('member-code').value = targetId;
+                    document.getElementById('member-code').value = cleanId;
                     showView('member-auth-view');
+                    document.getElementById('member-auth-error').innerText = "⚠️ Profile not synced yet. Try entering your numeric code directly.";
+                    document.getElementById('member-auth-error').style.display = 'block';
                 }
             }
         };
@@ -539,19 +544,25 @@
                 const response = await fetch(API_URL);
                 if (response.ok) {
                     const data = await response.json();
-                    if (data && data.members) {
+                    if (data && typeof data === "object") {
                         appData = data;
+                        if (!appData.members) appData.members = {};
+                        if (!appData.ownerPin) appData.ownerPin = "1234";
                     }
                 }
             } catch (e) {
                 console.error("Cloud connection failed, running offline fallback mode", e);
                 const cached = localStorage.getItem('again_fitness_master_db_v2');
-                if(cached) { try { appData = JSON.parse(cached); } catch(err){} }
+                if(cached) { 
+                    try { 
+                        appData = JSON.parse(cached); 
+                    } catch(err){} 
+                }
             }
         }
 
         async function syncData() {
-            // Keep localStorage updated as fallback
+            // Keep local fallback updated
             localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
             
             const logText = document.getElementById('sync-status-text');
@@ -582,7 +593,7 @@
                 if(appData.members[memberId]) {
                     renderMemberDisplayView(appData.members[memberId]);
                 }
-            }, 3000); // Check for real-time changes every 3 seconds
+            }, 3000); // Check for changes in real time every 3 seconds
         }
 
         function resetToPortal() { 
@@ -611,12 +622,16 @@
         }
 
         function verifyMemberCode() {
-            const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
+            // Remove any user-typed "AGN-" to keep search accurate to raw numbers
+            const targetCode = document.getElementById('member-code').value.trim().toUpperCase().replace("AGN-", "");
+            
             if(appData.members[targetCode]) { 
+                document.getElementById('member-auth-error').style.display = 'none';
                 renderMemberDisplayView(appData.members[targetCode]); 
                 showView('member-display-view');
                 startLiveAthleteSync(targetCode);
             } else { 
+                document.getElementById('member-auth-error').innerText = "❌ Code verification failed. Try adding this user on your Coach Terminal first.";
                 document.getElementById('member-auth-error').style.display = 'block'; 
             }
         }
@@ -637,7 +652,8 @@
             const inputField = document.getElementById('new-member-name');
             const name = inputField.value.trim();
             if(!name) return;
-            const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
+            // Generate raw 4 digit code instead of prefixed ones
+            const newId = `${Math.floor(1000 + Math.random() * 9000)}`;
             
             appData.members[newId] = { 
                 id: newId, 
@@ -672,7 +688,7 @@
         function copyShareLink(memberId) {
             const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
             navigator.clipboard.writeText(directUrl).then(() => { 
-                alert(`Real-Time Athlete Access URL Copied!\n\nYour client can bookmark this link. Any updates you make inside the Coach Terminal will show up here instantly in real time.`); 
+                alert(`Athlete Link Copied!\n\nLink: ${directUrl}\n\nAny change you make in this Coach Terminal will automatically update on their device without sending another link!`); 
             });
         }
 
