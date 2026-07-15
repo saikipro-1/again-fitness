@@ -377,7 +377,6 @@
             color: var(--gold);
             display: flex;
             justify-content: space-between;
-            align-items: center;
             z-index: 100;
         }
     </style>
@@ -454,19 +453,7 @@
                     </div>
                     <hr style="border-color: var(--glass-border); margin-bottom:1.5rem;">
                     <div id="member-roster-list"></div>
-                    <button class="btn btn-secondary" style="width:100%; font-size:0.85rem; margin-top:1rem;" onclick="promptChangePin()">Modify Master PIN</button>
-                    <button class="btn btn-gold" style="width:100%; font-size:0.85rem; margin-top:0.75rem;" onclick="toggleCloudConfig()">☁️ Setup Cloud Sync</button>
-                    
-                    <!-- Hidden Cloud Setup Subpanel -->
-                    <div id="cloud-config-panel" style="display: none; margin-top: 1.5rem; padding: 1.25rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 14px;">
-                        <h4 style="font-size:0.85rem; color:var(--gold); margin-bottom:0.75rem; text-transform:uppercase;">Cloud Sync Target</h4>
-                        <label style="font-size:0.75rem; color:var(--text-muted);">API Endpoint/URL</label>
-                        <input type="text" id="cloud-endpoint" placeholder="https://api.jsonbin.io/v3/b/..." style="margin-bottom:0.75rem; padding:0.6rem; font-size:0.85rem;">
-                        <label style="font-size:0.75rem; color:var(--text-muted);">API Token / Headers (JSON format)</label>
-                        <input type="text" id="cloud-headers" placeholder='{"X-Master-Key": "your_key"}' style="margin-bottom:0.75rem; padding:0.6rem; font-size:0.85rem;">
-                        <button class="btn" style="width:100%; font-size:0.8rem; padding:0.6rem;" onclick="saveCloudConfig()">Apply Target</button>
-                        <button class="btn btn-secondary" style="width:100%; font-size:0.8rem; padding:0.6rem; margin-top:0.5rem;" onclick="pullFromCloud()">🔄 Pull Cloud Data</button>
-                    </div>
+                    <button class="btn btn-secondary" style="width:100%; font-size:0.85rem; margin-top:2rem;" onclick="promptChangePin()">Modify Master PIN</button>
                 </div>
                 <div id="management-workbench"></div>
             </div>
@@ -480,10 +467,19 @@
 
     <div class="sync-log">
         <span>A-Gain Central Data Pipeline Matrix</span>
-        <span id="sync-status-text">Status: Connected</span>
+        <span id="sync-status-text">Status: Initializing Cloud Handshake...</span>
     </div>
 
     <script>
+        // --- Cloud Setup Using KVdb.io (Serverless Key-Value Store over HTTPS) ---
+        // Generates a dynamic unique bucket key for your data, saving it locally so your project persists automatically.
+        if(!localStorage.getItem('again_fitness_cloud_bucket')) {
+            const randomId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+            localStorage.setItem('again_fitness_cloud_bucket', randomId);
+        }
+        const BUCKET_KEY = localStorage.getItem('again_fitness_cloud_bucket');
+        const CLOUD_URL = `https://kvdb.io/K9m82E8TjN9G2WkMhS7gA4/${BUCKET_KEY}_db`;
+
         const defaultWorkoutStructure = () => [
             { day: "Monday", target: "Push Day Split", moves: [] },
             { day: "Tuesday", target: "Pull Day Split", moves: [] },
@@ -501,14 +497,37 @@
             { meal: "Dinner Structure", items: "" }
         ];
 
-        let appData = { ownerPin: "1234", members: {}, cloudConfig: { endpoint: "", headers: "" } };
+        let appData = { ownerPin: "1234", members: {} };
         let currentSelectedMemberId = null;
         let currentOwnerTab = 'workout';
 
-        window.onload = function() {
+        window.onload = async function() {
+            updateStatusText("Fetching Cloud Data...", "var(--gold)");
+            
+            // First step: Try parsing local cached data so the application loads instantly
             const cached = localStorage.getItem('again_fitness_master_db_v2');
             if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
             
+            // Second step: Pull live dataset directly from cloud sync pipeline
+            try {
+                const response = await fetch(CLOUD_URL);
+                if(response.ok) {
+                    const cloudData = await response.json();
+                    if(cloudData && cloudData.ownerPin) {
+                        appData = cloudData;
+                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+                        updateStatusText("Cloud Matrix Connected", "#4ade80");
+                    }
+                } else if (response.status === 404) {
+                    // Bucket is fresh/new on the server, upload current fallback database state
+                    await pushToCloud();
+                }
+            } catch (err) {
+                console.error("Cloud connection failed: ", err);
+                updateStatusText("Pipeline Offline (Local Mode)", "#ef4444");
+            }
+            
+            // Check for explicit deep links (?id=AGN-XXXX)
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
             
@@ -525,112 +544,40 @@
             }
         };
 
-        function resetToPortal() { window.history.replaceState({}, document.title, window.location.pathname); showView('portal-view'); }
+        function resetToPortal() { 
+            window.history.replaceState({}, document.title, window.location.pathname); 
+            showView('portal-view'); 
+        }
         
-        // Cloud Sync Handler Fix
-        async function syncData() {
-            // 1. Write Locally first
-            localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+        function updateStatusText(text, color) {
             const logText = document.getElementById('sync-status-text');
-            logText.innerText = `Saving locally...`;
-            logText.style.color = "var(--gold)";
-
-            // 2. Async Cloud Sync logic if setup
-            if (appData.cloudConfig && appData.cloudConfig.endpoint) {
-                logText.innerText = `Syncing to Cloud pipeline...`;
-                try {
-                    let customHeaders = { "Content-Type": "application/json" };
-                    if (appData.cloudConfig.headers) {
-                        try {
-                            const parsed = JSON.parse(appData.cloudConfig.headers);
-                            customHeaders = { ...customHeaders, ...parsed };
-                        } catch (e) {
-                            console.error("Invalid custom headers syntax. Defaulting to Content-Type header only.");
-                        }
-                    }
-
-                    const response = await fetch(appData.cloudConfig.endpoint, {
-                        method: 'PUT', // standard protocol for saving JSON bin environments
-                        headers: customHeaders,
-                        body: JSON.stringify({ ownerPin: appData.ownerPin, members: appData.members })
-                    });
-
-                    if (response.ok) {
-                        logText.innerText = `Cloud & Local Sync Successful!`;
-                        logText.style.color = "#4ade80";
-                    } else {
-                        throw new Error(`Pipeline response code: ${response.status}`);
-                    }
-                } catch (err) {
-                    console.error("Cloud Sync Pipeline Offline:", err);
-                    logText.innerText = `Local Saved. Cloud Pipeline Sync Failed ⚠️`;
-                    logText.style.color = "#ef4444";
-                }
-            } else {
-                logText.innerText = `Pipeline Synchronized Locally!`;
-                logText.style.color = "#4ade80";
-            }
-            setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 3500);
+            logText.innerText = text;
+            logText.style.color = color || "var(--gold)";
         }
 
-        async function pullFromCloud() {
-            if (!appData.cloudConfig || !appData.cloudConfig.endpoint) {
-                alert("Provide an active Cloud Endpoint target url first.");
-                return;
-            }
-            const logText = document.getElementById('sync-status-text');
-            logText.innerText = "Fetching Cloud Pipeline Data...";
+        async function pushToCloud() {
             try {
-                let customHeaders = { "Content-Type": "application/json" };
-                if (appData.cloudConfig.headers) {
-                    try { customHeaders = { ...customHeaders, ...JSON.parse(appData.cloudConfig.headers) }; } catch(e){}
-                }
-
-                const response = await fetch(appData.cloudConfig.endpoint, { headers: customHeaders });
-                if (response.ok) {
-                    const cloudPayload = await response.json();
-                    // Some APIs (like jsonbin) wrap payload in a .record object
-                    const remoteData = cloudPayload.record ? cloudPayload.record : cloudPayload;
-                    if (remoteData.ownerPin && remoteData.members) {
-                        appData.ownerPin = remoteData.ownerPin;
-                        appData.members = remoteData.members;
-                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
-                        renderRoster();
-                        renderWorkbench();
-                        alert("Database synchronized from cloud snapshot successfully!");
-                    } else {
-                        alert("Cloud structure mismatch. Check your JSON format key structure.");
-                    }
+                updateStatusText("Pushing modifications to cloud...", "var(--gold)");
+                const response = await fetch(CLOUD_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(appData)
+                });
+                if(response.ok) {
+                    updateStatusText("Pipeline Synchronized Live!", "#4ade80");
+                    setTimeout(() => updateStatusText("Status: Connected", "var(--gold)"), 2000);
                 } else {
-                    alert("Failure to communicate with remote database.");
+                    throw new Error("Failed server validation response.");
                 }
-            } catch (err) {
-                alert("Cloud connection error: " + err.message);
-            } finally {
-                logText.innerText = "Status: Connected";
+            } catch(e) {
+                console.error("Cloud push failed:", e);
+                updateStatusText("Sync Failed (Changes saved locally)", "#ef4444");
             }
         }
 
-        function toggleCloudConfig() {
-            const el = document.getElementById('cloud-config-panel');
-            if (el.style.display === "none") {
-                el.style.display = "block";
-                document.getElementById('cloud-endpoint').value = appData.cloudConfig?.endpoint || "";
-                document.getElementById('cloud-headers').value = appData.cloudConfig?.headers || "";
-            } else {
-                el.style.display = "none";
-            }
-        }
-
-        function saveCloudConfig() {
-            const ep = document.getElementById('cloud-endpoint').value.trim();
-            const headersVal = document.getElementById('cloud-headers').value.trim();
-            
-            if(!appData.cloudConfig) appData.cloudConfig = { endpoint: "", headers: "" };
-            appData.cloudConfig.endpoint = ep;
-            appData.cloudConfig.headers = headersVal;
-            syncData();
-            alert("Cloud database parameters updated!");
+        function syncData() {
+            localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+            pushToCloud();
         }
 
         function showView(viewId) {
@@ -641,7 +588,10 @@
         }
 
         function verifyOwnerPin() {
-            if(document.getElementById('owner-pin').value === appData.ownerPin) { showView('owner-dashboard-view'); } 
+            if(document.getElementById('owner-pin').value === appData.ownerPin) { 
+                showView('owner-dashboard-view'); 
+                document.getElementById('owner-auth-error').style.display = 'none';
+            } 
             else { document.getElementById('owner-auth-error').style.display = 'block'; }
         }
 
@@ -649,12 +599,20 @@
             const currentPinCheck = prompt("Verify current PIN:");
             if (currentPinCheck !== appData.ownerPin) { alert("Incorrect matching sequence."); return; }
             const newPin = prompt("Enter new PIN sequence:");
-            if(newPin && newPin.trim().length > 0) { appData.ownerPin = newPin.trim(); syncData(); alert("PIN Saved."); }
+            if(newPin && newPin.trim().length > 0) { 
+                appData.ownerPin = newPin.trim(); 
+                syncData(); 
+                alert("PIN Saved."); 
+            }
         }
 
         function verifyMemberCode() {
             const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
-            if(appData.members[targetCode]) { renderMemberDisplayView(targetCode); showView('member-display-view'); } 
+            if(appData.members[targetCode]) { 
+                renderMemberDisplayView(targetCode); 
+                showView('member-display-view'); 
+                document.getElementById('member-auth-error').style.display = 'none';
+            } 
             else { document.getElementById('member-auth-error').style.display = 'block'; }
         }
 
@@ -676,16 +634,28 @@
             if(!name) return;
             const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
             appData.members[newId] = { id: newId, name: name, workout: defaultWorkoutStructure(), diet: defaultDietStructure() };
-            inputField.value = ''; currentSelectedMemberId = newId; syncData(); renderRoster(); renderWorkbench();
+            inputField.value = ''; 
+            currentSelectedMemberId = newId; 
+            syncData(); 
+            renderRoster(); 
+            renderWorkbench();
         }
 
         function deleteMember(memberId) {
-            if(confirm("Permanently wipe profile data configuration?")) { delete appData.members[memberId]; currentSelectedMemberId = null; syncData(); renderRoster(); renderWorkbench(); }
+            if(confirm("Permanently wipe profile data configuration?")) { 
+                delete appData.members[memberId]; 
+                currentSelectedMemberId = null; 
+                syncData(); 
+                renderRoster(); 
+                renderWorkbench(); 
+            }
         }
 
         function copyShareLink(memberId) {
             const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
-            navigator.clipboard.writeText(directUrl).then(() => { alert(`Live Access Link Copied!\n\nThis link updates instantly whenever you modify changes.\n\nURL: ${directUrl}`); });
+            navigator.clipboard.writeText(directUrl).then(() => { 
+                alert(`Live Access Link Copied!\n\nThis link updates instantly whenever changes are modified.\n\nURL: ${directUrl}`); 
+            });
         }
 
         function renderWorkbench() {
@@ -727,7 +697,7 @@
                     block.moves.forEach((move, moveIndex) => {
                         html += `
                             <div class="row-entry">
-                                <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
+                                <input type="text" value="${move.name}" placeholder="Exercise Spec Name" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
                                 <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
                                 <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
                                 <button class="btn btn-secondary" style="padding:0.95rem 1.25rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
@@ -749,7 +719,8 @@
                 });
                 html += `</div>`;
             }
-            html += `</div>`; container.innerHTML = html;
+            html += `</div>`; 
+            container.innerHTML = html;
         }
 
         function switchTab(tabName) { currentOwnerTab = tabName; renderWorkbench(); }
@@ -783,9 +754,11 @@
                     <p style="text-transform:uppercase; letter-spacing:1.5px; color:var(--gold); font-size:0.9rem; font-weight:600;">Custom Training Profile Portal</p>
                     <h2 style="font-size:3rem; margin-top:0.35rem; font-weight:800; text-transform: uppercase;">${member.name}</h2>
                 </div>
+                
                 <div class="card" style="margin-bottom:2.5rem;">
                     <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--primary); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🏋️‍♂️ TARGET ROTATION ROUTINE WORKOUT SHEET</h3>
             `;
+            
             member.workout.forEach(day => {
                 html += `
                     <div style="margin-bottom:1.75rem; background:rgba(0,0,0,0.2); padding:1.75rem; border-radius:16px; border-left: 4px solid var(--primary); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
@@ -812,24 +785,21 @@
             html += `
                 </div>
                 <div class="card">
-                    <h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🥗 CUSTOM NUTRITIONAL MAPPING & DIETARY MACROS</h3>
-                    <div>
+                    <h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🥗 NUTRITIONAL DIETARY TARGET MACROS</h3>
             `;
+
+            let hasDietData = false;
             member.diet.forEach(meal => {
+                if(meal.items && meal.items.trim().length > 0) hasDietData = true;
                 html += `
-                    <div style="margin-bottom:1.5rem; background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; border-left: 4px solid var(--gold); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
-                        <h4 style="font-size:1.15rem; font-weight:700; color:var(--gold); margin-bottom:0.5rem;">${meal.meal}</h4>
-                        <p style="color:var(--text-main); font-size:1rem; line-height:1.6; white-space: pre-wrap;">${meal.items || 'No specific items mapped yet by your coach.'}</p>
+                    <div style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border);">
+                        <h4 style="color: var(--gold); font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem;">${meal.meal}</h4>
+                        <p style="white-space: pre-wrap; line-height: 1.6; font-size: 1rem; color: var(--text-main);">${meal.items || 'No nutritional updates added for this segment yet.'}</p>
                     </div>
                 `;
             });
-            html += `
-                    </div>
-                </div>
-                <div style="text-align: center; margin-top: 3rem;">
-                    <button class="btn btn-secondary" onclick="resetToPortal()">⬅ Back to Portal Entry</button>
-                </div>
-            `;
+
+            html += `</div>`;
             displayBox.innerHTML = html;
         }
     </script>
