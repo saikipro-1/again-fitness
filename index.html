@@ -382,7 +382,6 @@
             z-index: 100;
         }
 
-        /* Metrics grid styling */
         .identity-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -418,7 +417,7 @@
 
     <header>
         <div>
-            <div class="brand-title">A-Gain <span>Fitness</span></div>
+            <div class="brand-title" style="cursor: pointer;" onclick="resetToPortal()">A-Gain <span>Fitness</span></div>
             <div class="brand-slogan">The commitment is ours. The Gain is yours.</div>
         </div>
         <div>
@@ -504,69 +503,32 @@
     </div>
 
     <script>
-        // Use a persistent, free JSONBin/KeyValue style micro-database URL unique to your app
-        const SYNC_BIN_URL = "https://api.jsonbin.it/v1/s/65f2cc811e55"; 
+        // Dedicated free high-performance serverless KV storage bucket endpoint
+        const SYNC_URL = "https://kvdb.io/979u7A7Z7f9rS5f8N8k8L2/again_fitness_db_v3"; 
         
         let appData = { ownerPin: "1234", members: {} };
         let currentSelectedMemberId = null;
         let currentOwnerTab = 'identity';
 
-        // Custom debounce function for real-time keystroke saving without hitting API limits
         let syncTimeout = null;
         function debouncedSync() {
             clearTimeout(syncTimeout);
             syncTimeout = setTimeout(() => {
                 syncDataCloud();
-            }, 1000); // Wait 1 second after typing stops before uploading
+            }, 1000); 
         }
 
         window.onload = async function() {
-            // 1. Initial Load: Try getting latest global database from Cloud Bin
-            const logText = document.getElementById('sync-status-text');
-            logText.innerText = "Syncing with cloud database...";
-            logText.style.color = "var(--gold)";
+            await pullData();
 
-            try {
-                const response = await fetch(SYNC_BIN_URL);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.members) {
-                        appData = data;
-                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
-                        logText.innerText = "Pipeline Synchronized Live!";
-                        logText.style.color = "#4ade80";
-                    }
-                }
-            } catch (err) {
-                console.warn("Could not reach cloud database, using local backup:", err);
-                const cached = localStorage.getItem('again_fitness_master_db_v2');
-                if (cached) { try { appData = JSON.parse(cached); } catch(e){} }
-                logText.innerText = "Status: Offline (Using Local Backup)";
-                logText.style.color = "#ef4444";
-            }
-
-            setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 3000);
-
-            // 2. Check if user clicked a direct payload link
+            // Direct routing parsing logic (e.g. yoursite.html?id=AGN-1234)
             const urlParams = new URLSearchParams(window.location.search);
-            const rawData = urlParams.get('p');
             const directId = urlParams.get('id');
 
-            if (rawData) {
-                try {
-                    const decryptedData = JSON.parse(decodeURIComponent(escape(atob(rawData))));
-                    renderMemberDisplayView(decryptedData, true);
-                    showView('member-display-view');
-                    return;
-                } catch(e) {
-                    console.error("Payload decoding failed", e);
-                }
-            }
-            
             if (directId) {
                 const targetId = directId.toUpperCase();
                 if (appData.members[targetId]) { 
-                    renderMemberDisplayView(appData.members[targetId], false); 
+                    renderMemberDisplayView(appData.members[targetId]); 
                     showView('member-display-view'); 
                 } else {
                     document.getElementById('member-code').value = targetId;
@@ -580,10 +542,38 @@
             showView('portal-view'); 
         }
 
-        // Saves locally instantly, then triggers debounced cloud sync
         function syncData() {
-            localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+            localStorage.setItem('again_fitness_master_db_v3', JSON.stringify(appData));
             debouncedSync();
+        }
+
+        async function pullData() {
+            const logText = document.getElementById('sync-status-text');
+            logText.innerText = "Syncing with cloud database...";
+            logText.style.color = "var(--gold)";
+
+            try {
+                const response = await fetch(SYNC_URL);
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && text.trim().length > 0) {
+                        const data = JSON.parse(text);
+                        if (data && data.members) {
+                            appData = data;
+                            localStorage.setItem('again_fitness_master_db_v3', JSON.stringify(appData));
+                            logText.innerText = "Pipeline Synchronized Live!";
+                            logText.style.color = "#4ade80";
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Could not reach cloud database, using local backup:", err);
+                const cached = localStorage.getItem('again_fitness_master_db_v3');
+                if (cached) { try { appData = JSON.parse(cached); } catch(e){} }
+                logText.innerText = "Status: Offline (Using Local Backup)";
+                logText.style.color = "#ef4444";
+            }
+            setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 3000);
         }
 
         async function syncDataCloud() {
@@ -592,7 +582,7 @@
             logText.style.color = "var(--gold)";
 
             try {
-                const response = await fetch(SYNC_BIN_URL, {
+                const response = await fetch(SYNC_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(appData)
@@ -603,7 +593,7 @@
                 }
             } catch (err) {
                 console.error("Failed to push to cloud DB", err);
-                logText.innerText = "Sync Failed. Retrying later.";
+                logText.innerText = "Sync Failed. Retrying...";
                 logText.style.color = "#ef4444";
             }
             setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
@@ -628,28 +618,11 @@
             if(newPin && newPin.trim().length > 0) { appData.ownerPin = newPin.trim(); syncData(); alert("PIN Saved."); }
         }
 
-        // Pull dynamic profile on demand directly from Cloud DB to eliminate missing local records
         async function verifyMemberCode() {
             const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
-            
-            const logText = document.getElementById('sync-status-text');
-            logText.innerText = "Fetching profile from cloud...";
-            
-            try {
-                const response = await fetch(SYNC_BIN_URL);
-                if (response.ok) {
-                    const latestData = await response.json();
-                    if (latestData && latestData.members) {
-                        appData = latestData;
-                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
-                    }
-                }
-            } catch (err) {
-                console.warn("Could not pull fresh database, using cached system.");
-            }
-
+            await pullData(); // Pull fresh data to verify existence
             if(appData.members[targetCode]) { 
-                renderMemberDisplayView(appData.members[targetCode], false); 
+                renderMemberDisplayView(appData.members[targetCode]); 
                 showView('member-display-view'); 
             } else { 
                 document.getElementById('member-auth-error').style.display = 'block'; 
@@ -706,9 +679,8 @@
 
         function copyShareLink(memberId) {
             const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
-            
             navigator.clipboard.writeText(directUrl).then(() => { 
-                alert(`Dynamic Athlete Access URL Copied!\n\nThis dynamic link is mapped to ID token: ${memberId}. Whenever you make updates inside the Coach Terminal, your client just needs to refresh this link on their phone, and your edits will appear instantly!`); 
+                alert(`Dynamic Athlete Access URL Copied!\n\nLink: ${directUrl}\n\nWhenever you make changes to this client's workouts or diet in the dashboard, their phone screen will update instantly when they reload the page.`); 
             });
         }
 
@@ -920,7 +892,7 @@
             syncData(); 
         }
 
-        function renderMemberDisplayView(member, isEmbeddedPayload = false) {
+        function renderMemberDisplayView(member) {
             const displayBox = document.getElementById('member-display-content');
             
             let photoSnippet = '';
