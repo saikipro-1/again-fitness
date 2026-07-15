@@ -184,12 +184,12 @@
             color: var(--text-muted);
         }
 
-        /* VIEW DISPLAY TOGGLING SYSTEM */
+        /* FIXED VIEW DISPLAY TOGGLING SYSTEM */
         .view-panel {
-            display: none !important; /* Forces all non-active screens to absolute hidden */
+            display: none; /* No !important here so it can be cleanly overridden */
         }
         .view-panel.active {
-            display: block !important; /* Force displays the active workspace screen */
+            display: block !important; /* Forces show only when .active is added */
         }
 
         .card {
@@ -541,12 +541,14 @@
 
         function showStatusText(text, color) {
             const logText = document.getElementById('sync-status-text');
-            logText.innerText = text;
-            logText.style.color = color;
+            if (logText) {
+                logText.innerText = text;
+                logText.style.color = color;
+            }
         }
         
         function showView(viewId) {
-            // First disable all viewports
+            // First disable all viewports by removing the active class
             document.querySelectorAll('.view-panel').forEach(panel => {
                 panel.classList.remove('active');
             });
