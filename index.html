@@ -184,12 +184,9 @@
             color: var(--text-muted);
         }
 
-        /* FIXED VIEW DISPLAY TOGGLING SYSTEM */
+        /* HARD-RESET THE VIEWPORT MANAGEMENT */
         .view-panel {
-            display: none; /* No !important here so it can be cleanly overridden */
-        }
-        .view-panel.active {
-            display: block !important; /* Forces show only when .active is added */
+            display: none; /* Controlled explicitly via JS .style.display to prevent cascading conflicts */
         }
 
         .card {
@@ -406,8 +403,8 @@
 
     <div class="container">
 
-        <!-- VIEW 1: LANDING ENTRYWAY PORTAL -->
-        <div id="portal-view" class="view-panel active animate-ui">
+        <!-- VIEW 1: LANDING ENTRYWAY PORTAL (Visible by default via JS initialization) -->
+        <div id="portal-view" class="view-panel animate-ui">
             <div class="portal-hero">
                 <div class="floating-gym-sign">
                     <div class="sign-text-main">A-Gain <span>Fitness</span></div>
@@ -528,6 +525,9 @@
                     alert("Handshake missing. The dynamic profile link provided does not exist.");
                     resetToPortal();
                 }
+            } else {
+                // Ensure landing portal view opens cleanly on fresh page load
+                showView('portal-view');
             }
         };
 
@@ -547,18 +547,19 @@
             }
         }
         
+        // FIXED EXPLICIT DISPLAY VIEW TOGGLE ENGINE
         function showView(viewId) {
-            // First disable all viewports by removing the active class
-            document.querySelectorAll('.view-panel').forEach(panel => {
-                panel.classList.remove('active');
+            const panels = document.querySelectorAll('.view-panel');
+            panels.forEach(panel => {
+                panel.style.display = 'none';
             });
-            // Target specific interface node and switch active status
+
             const targetElement = document.getElementById(viewId);
             if (targetElement) {
-                targetElement.classList.add('active');
+                targetElement.style.display = 'block';
             }
 
-            if(viewId === 'owner-dashboard-view') { 
+            if (viewId === 'owner-dashboard-view') { 
                 loadAndRenderOwnerData();
             }
         }
