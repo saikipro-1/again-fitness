@@ -120,18 +120,7 @@
         .sync-log { position: fixed; bottom: 0; left: 0; right: 0; background: #0b0d10; border-top: 1px solid var(--glass-border); padding: 1rem 3rem; font-family: monospace; font-size: 0.8rem; color: var(--gold); display: flex; justify-content: space-between; }
         .identity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
         
-        .sync-box {
-            background: rgba(242, 101, 34, 0.1);
-            border: 1px solid rgba(242, 101, 34, 0.3);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
+        .loading-spinner { display: none; text-align: center; color: var(--gold); font-weight: bold; padding: 2rem; }
     </style>
 </head>
 <body>
@@ -148,21 +137,31 @@
 
     <div class="container">
 
+        <!-- Loading View -->
+        <div id="loading-view" class="view-panel">
+            <div class="card" style="text-align: center;">
+                <h3 style="color: var(--gold);">⚡ Connecting to Cloud Pipeline...</h3>
+                <p style="color: var(--text-muted); margin-top: 1rem;">Fetching up-to-date athlete profile configurations.</p>
+            </div>
+        </div>
+
+        <!-- Portal Menu -->
         <div id="portal-view" class="view-panel active">
             <div style="display: flex; justify-content: center; margin-top: 4rem;">
                 <div class="portal-grid">
                     <div class="portal-card" onclick="showView('owner-auth-view')">
                         <h2>Coach Terminal</h2>
-                        <p style="color: var(--text-muted); margin-top: 1rem;">Manage athletes, update routines, and generate update codes.</p>
+                        <p style="color: var(--text-muted); margin-top: 1rem;">Manage athletes, update routines, and sync directly to live cloud database.</p>
                     </div>
                     <div class="portal-card" onclick="showView('member-auth-view')">
                         <h2>Athlete Hub</h2>
-                        <p style="color: var(--text-muted); margin-top: 1rem;">View your active workout routines and update plan changes instantly.</p>
+                        <p style="color: var(--text-muted); margin-top: 1rem;">View your active workout routines synced straight from your coach.</p>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Coach Login -->
         <div id="owner-auth-view" class="view-panel">
             <div class="card" style="max-width: 460px; margin: 4rem auto;">
                 <h3>Coach Authorization</h3>
@@ -174,6 +173,7 @@
             </div>
         </div>
 
+        <!-- Athlete Login -->
         <div id="member-auth-view" class="view-panel">
             <div class="card" style="max-width: 460px; margin: 4rem auto;">
                 <h3>Athlete Log-In</h3>
@@ -185,6 +185,7 @@
             </div>
         </div>
 
+        <!-- Trainer Control Room -->
         <div id="owner-dashboard-view" class="view-panel">
             <div class="owner-layout">
                 <div class="member-sidebar">
@@ -197,35 +198,30 @@
             </div>
         </div>
 
+        <!-- Client Portal Screen -->
         <div id="member-display-view" class="view-panel">
-            <div class="sync-box">
-                <div>
-                    <h4 style="color: white; font-weight: 700;">Routine Out of Date?</h4>
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">If your coach updated your workout, enter the 4-digit Update Sync Code below.</p>
-                </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="text" id="sync-input-code" placeholder="4-Digit Code" style="margin: 0; width: 130px; text-transform: uppercase; font-family: monospace; font-weight: bold; text-align: center;">
-                    <button class="btn" style="padding: 0.85rem 1.5rem;" onclick="applySyncCode()">🔄 Sync Update</button>
-                </div>
-            </div>
             <div id="member-display-content"></div>
         </div>
 
     </div>
 
     <div class="sync-log">
-        <span>A-Gain Hybrid Network Engine</span>
+        <span>A-Gain Live Cloud Storage Active</span>
         <span id="sync-status-text">Ready</span>
     </div>
 
     <script>
+        // Unique key applied successfully
+        const COACH_SECRET_KEY = "AGainFitness_Trinav_2026"; 
+        const API_URL = `https://kvdb.io/MN9q5fUsh8LqjP5Z3b3g3E/${COACH_SECRET_KEY}`;
+
         let appData = { ownerPin: "1234", members: {} };
         let currentSelectedMemberId = null;
         let currentOwnerTab = 'identity'; 
 
-        window.onload = function() {
-            const cached = localStorage.getItem('again_fitness_master_db_v3');
-            if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
+        window.onload = async function() {
+            updateSyncText("Fetching cloud memory...");
+            await fetchFromCloud();
             
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
@@ -233,8 +229,45 @@
                 currentSelectedMemberId = directId.trim();
                 renderMemberDisplayView(appData.members[currentSelectedMemberId]); 
                 showView('member-display-view'); 
+            } else {
+                showView('portal-view');
             }
         };
+
+        async function fetchFromCloud() {
+            try {
+                const response = await fetch(API_URL);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.members) appData = data;
+                    updateSyncText("Cloud Connected", "#4ade80");
+                }
+            } catch (e) {
+                console.log("No remote database initialized yet. Creating clean local storage layout.");
+                updateSyncText("Cloud Setup Needed", "var(--gold)");
+            }
+        }
+
+        async function pushToCloud() {
+            updateSyncText("Uploading to cloud...");
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(appData),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                updateSyncText("Cloud Synced Live!", "#4ade80");
+            } catch (e) {
+                updateSyncText("Sync Error!", "#ef4444");
+                alert("Network failed to push configuration updates. Check internet status.");
+            }
+        }
+
+        function updateSyncText(text, color = "var(--gold)") {
+            const el = document.getElementById('sync-status-text');
+            el.innerText = text;
+            el.style.color = color;
+        }
 
         function resetToPortal() { 
             window.history.replaceState({}, document.title, window.location.pathname); 
@@ -252,13 +285,18 @@
             else { alert("Invalid access entry PIN."); }
         }
 
-        function verifyMemberCode() {
+        async function verifyMemberCode() {
             const code = document.getElementById('member-code').value.trim();
+            showView('loading-view');
+            await fetchFromCloud(); 
             if(appData.members[code]) { 
                 currentSelectedMemberId = code;
                 renderMemberDisplayView(appData.members[code]); 
                 showView('member-display-view'); 
-            } else { alert("Profile data not established inside this device yet. Enter a sync block payload code."); }
+            } else { 
+                alert("Profile code not found in cloud registry."); 
+                showView('member-auth-view');
+            }
         }
 
         function renderRoster() {
@@ -273,52 +311,21 @@
             });
         }
 
-        function addMember() {
+        async function addMember() {
             const name = document.getElementById('new-member-name').value.trim();
             if(!name) return;
             const newId = `${Math.floor(1000 + Math.random() * 9000)}`;
             appData.members[newId] = { id: newId, name: name, height: "", weight: "", bmi: "", goal: "", feesDuration: "", workout: [], diet: [] };
             document.getElementById('new-member-name').value = '';
             currentSelectedMemberId = newId;
-            saveMasterData();
+            await pushToCloud();
             renderRoster();
             renderWorkbench();
         }
 
-        function saveMasterData() {
-            localStorage.setItem('again_fitness_master_db_v3', JSON.stringify(appData));
-        }
-
-        // GENERATE SEAMLESS UPDATE SHORTCODE
-        function generateSyncCode(memberId) {
-            const copyData = JSON.parse(JSON.stringify(appData.members[memberId]));
-            return btoa(unescape(encodeURIComponent(JSON.stringify(copyData))));
-        }
-
         function copyBaseLink(memberId) {
             const baseLink = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
-            navigator.clipboard.writeText(baseLink).then(() => { alert("Base Shareable Link Saved to Clipboard!"); });
-        }
-
-        function copyFullSyncCode(memberId) {
-            const code = generateSyncCode(memberId);
-            navigator.clipboard.writeText(code).then(() => { alert("Update Sync Code Copied! Send this short string code to your athlete."); });
-        }
-
-        // ATHLETE SIDE: Input text token to flash update client workspace layout
-        function applySyncCode() {
-            const inputToken = document.getElementById('sync-input-code').value.trim();
-            if(!inputToken) return;
-            try {
-                const incomingData = JSON.parse(decodeURIComponent(atob(inputToken)));
-                if(incomingData && incomingData.id) {
-                    appData.members[incomingData.id] = incomingData;
-                    saveMasterData();
-                    renderMemberDisplayView(incomingData);
-                    document.getElementById('sync-input-code').value = '';
-                    alert("Routine Matched & Synced Live Successfully!");
-                }
-            } catch(e) { alert("Invalid system code sequence. Try re-copying the code."); }
+            navigator.clipboard.writeText(baseLink).then(() => { alert("Client Share URL copied to clipboard! Share this link once."); });
         }
 
         function renderWorkbench() {
@@ -336,9 +343,8 @@
                             <h2>${member.name}</h2>
                             <p style="color:var(--text-muted)">Permanent ID: <span style="color:var(--gold); font-family:monospace;">${member.id}</span></p>
                         </div>
-                        <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                            <button class="btn btn-secondary" onclick="copyBaseLink('${member.id}')">🔗 Step 1: Copy Share URL Link (Only once)</button>
-                            <button class="btn btn-gold" onclick="copyFullSyncCode('${member.id}')">🔄 Step 2: Copy Update Sync Code</button>
+                        <div>
+                            <button class="btn btn-gold" onclick="copyBaseLink('${member.id}')">📋 Copy Athlete Portal Link</button>
                         </div>
                     </div>
 
@@ -361,40 +367,40 @@
             if(currentOwnerTab === 'identity') {
                 box.innerHTML = `
                     <div class="identity-grid">
-                        <div><label>Height (cm)</label><input type="number" value="${member.height}" oninput="member.height=this.value; saveMasterData();"></div>
-                        <div><label>Weight (kg)</label><input type="number" value="${member.weight}" oninput="member.weight=this.value; saveMasterData();"></div>
-                        <div><label>Fitness Target Goal</label><input type="text" value="${member.goal}" oninput="member.goal=this.value; saveMasterData();"></div>
+                        <div><label>Height (cm)</label><input type="number" value="${member.height}" onchange="appData.members['${member.id}'].height=this.value; pushToCloud();"></div>
+                        <div><label>Weight (kg)</label><input type="number" value="${member.weight}" onchange="appData.members['${member.id}'].weight=this.value; pushToCloud();"></div>
+                        <div><label>Fitness Target Goal</label><input type="text" value="${member.goal}" onchange="appData.members['${member.id}'].goal=this.value; pushToCloud();"></div>
                     </div>
                 `;
             } else if(currentOwnerTab === 'workout') {
-                let html = `<button class="btn" style="margin-bottom:1.5rem;" onclick="appData.members['${member.id}'].workout.push({day:'Day 1', target:'Focus', moves:[]}); saveMasterData(); renderWorkbench();">➕ Add Day Block</button>`;
+                let html = `<button class="btn" style="margin-bottom:1.5rem;" onclick="appData.members['${member.id}'].workout.push({day:'Day 1', target:'Focus', moves:[]}); pushToCloud(); renderWorkbench();">➕ Add Day Block</button>`;
                 member.workout.forEach((w, dIdx) => {
                     html += `
                         <div style="background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; margin-bottom:1.5rem; border:1px solid var(--glass-border)">
                             <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
-                                <input type="text" value="${w.day}" oninput="appData.members['${member.id}'].workout[${dIdx}].day=this.value; saveMasterData();" style="width:140px; margin:0;">
-                                <input type="text" value="${w.target}" oninput="appData.members['${member.id}'].workout[${dIdx}].target=this.value; saveMasterData();" style="margin:0;">
+                                <input type="text" value="${w.day}" onchange="appData.members['${member.id}'].workout[${dIdx}].day=this.value; pushToCloud();" style="width:140px; margin:0;">
+                                <input type="text" value="${w.target}" onchange="appData.members['${member.id}'].workout[${dIdx}].target=this.value; pushToCloud();" style="margin:0;">
                             </div>
                     `;
                     w.moves.forEach((m, mIdx) => {
                         html += `
                             <div class="row-entry">
-                                <input type="text" placeholder="Exercise" value="${m.name}" oninput="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].name=this.value; saveMasterData();" style="margin:0;">
-                                <input type="text" placeholder="Sets" value="${m.sets}" oninput="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].sets=this.value; saveMasterData();" style="width:80px; margin:0;">
-                                <input type="text" placeholder="Reps" value="${m.reps}" oninput="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].reps=this.value; saveMasterData();" style="width:90px; margin:0;">
+                                <input type="text" placeholder="Exercise" value="${m.name}" onchange="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].name=this.value; pushToCloud();" style="margin:0;">
+                                <input type="text" placeholder="Sets" value="${m.sets}" onchange="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].sets=this.value; pushToCloud();" style="width:80px; margin:0;">
+                                <input type="text" placeholder="Reps" value="${m.reps}" onchange="appData.members['${member.id}'].workout[${dIdx}].moves[${mIdx}].reps=this.value; pushToCloud();" style="width:90px; margin:0;">
                             </div>
                         `;
                     });
-                    html += `<button class="btn btn-secondary" style="font-size:0.8rem; padding:0.5rem 1rem; margin-top:0.5rem;" onclick="appData.members['${member.id}'].workout[${dIdx}].moves.push({name:'',sets:'',reps:''}); saveMasterData(); renderWorkbench();">➕ Add Exercise</button></div>`;
+                    html += `<button class="btn btn-secondary" style="font-size:0.8rem; padding:0.5rem 1rem; margin-top:0.5rem;" onclick="appData.members['${member.id}'].workout[${dIdx}].moves.push({name:'',sets:'',reps:''}); pushToCloud(); renderWorkbench();">➕ Add Exercise</button></div>`;
                 });
                 box.innerHTML = html;
             } else {
-                let html = `<button class="btn btn-gold" style="margin-bottom:1.5rem;" onclick="appData.members['${member.id}'].diet.push({meal:'Meal', items:''}); saveMasterData(); renderWorkbench();">➕ Add Meal Block</button>`;
+                let html = `<button class="btn btn-gold" style="margin-bottom:1.5rem;" onclick="appData.members['${member.id}'].diet.push({meal:'Meal', items:''}); pushToCloud(); renderWorkbench();">➕ Add Meal Block</button>`;
                 member.diet.forEach((d, mIdx) => {
                     html += `
                         <div class="row-entry" style="align-items:flex-start;">
-                            <input type="text" value="${d.meal}" oninput="appData.members['${member.id}'].diet[${mIdx}].meal=this.value; saveMasterData();" style="width:200px; margin:0;">
-                            <textarea oninput="appData.members['${member.id}'].diet[${mIdx}].items=this.value; saveMasterData();" style="margin:0; height:70px;">${d.items}</textarea>
+                            <input type="text" value="${d.meal}" onchange="appData.members['${member.id}'].diet[${mIdx}].meal=this.value; pushToCloud();" style="width:200px; margin:0;">
+                            <textarea onchange="appData.members['${member.id}'].diet[${mIdx}].items=this.value; pushToCloud();" style="margin:0; height:70px;">${d.items}</textarea>
                         </div>
                     `;
                 });
