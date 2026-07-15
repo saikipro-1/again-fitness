@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A-Gain Fitness | Elite Athlete Portal</title>
+    <!-- Supabase Official JS Client Library CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -29,11 +30,7 @@
             background-color: var(--bg-slate-dark);
             background-image: 
                 radial-gradient(circle at 50% -20%, rgba(242, 101, 34, 0.18) 0%, transparent 60%),
-                radial-gradient(circle at 0% 100%, rgba(223, 186, 107, 0.05) 0%, transparent 40%),
-                linear-gradient(45deg, rgba(255, 255, 255, 0.003) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.003) 75%),
-                linear-gradient(45deg, rgba(255, 255, 255, 0.003) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.003) 75%);
-            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
-            background-position: 0 0, 0 0, 0 0, 20px 20px;
+                radial-gradient(circle at 0% 100%, rgba(223, 186, 107, 0.05) 0%, transparent 40%);
             color: var(--text-main);
             min-height: 100vh;
             padding-bottom: 90px;
@@ -51,7 +48,7 @@
         }
 
         .animate-ui {
-            animation: subtleScaleUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: subtleScaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         header {
@@ -92,7 +89,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 5rem;
+            margin-bottom: 4rem;
         }
 
         .floating-gym-sign {
@@ -154,26 +151,12 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
             border-radius: 24px;
-            padding: 5rem 3rem;
+            padding: 4rem 2rem;
             text-align: center;
             cursor: pointer;
             position: relative;
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
-        .portal-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 24px;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            z-index: -1;
-        }
-        .portal-card.owner-card::before { background: radial-gradient(circle at 50% 50%, rgba(242, 101, 34, 0.15) 0%, transparent 70%); }
-        .portal-card.member-card::before { background: radial-gradient(circle at 50% 50%, rgba(223, 186, 107, 0.12) 0%, transparent 70%); }
-
-        .portal-card:hover::before { opacity: 1; }
 
         .portal-card:hover {
             transform: translateY(-8px);
@@ -181,11 +164,11 @@
         }
         .portal-card.owner-card:hover { 
             border-color: rgba(242, 101, 34, 0.6);
-            box-shadow: 0 30px 60px rgba(242, 101, 34, 0.18), 0 0 20px rgba(242, 101, 34, 0.1); 
+            box-shadow: 0 30px 60px rgba(242, 101, 34, 0.18); 
         }
         .portal-card.member-card:hover { 
             border-color: rgba(223, 186, 107, 0.5);
-            box-shadow: 0 30px 60px rgba(223, 186, 107, 0.12), 0 0 20px rgba(223, 186, 107, 0.08); 
+            box-shadow: 0 30px 60px rgba(223, 186, 107, 0.12); 
         }
 
         .portal-card h2 {
@@ -193,15 +176,20 @@
             font-weight: 700;
             margin-bottom: 1rem;
             color: #ffffff;
-            transition: text-shadow 0.3s;
         }
-        .portal-card.owner-card:hover h2 { text-shadow: 0 0 15px rgba(242, 101, 34, 0.4); }
-        .portal-card.member-card:hover h2 { text-shadow: 0 0 15px rgba(223, 186, 107, 0.4); }
 
         .portal-card p {
             font-size: 0.95rem;
             line-height: 1.6;
             color: var(--text-muted);
+        }
+
+        /* VIEW DISPLAY TOGGLING SYSTEM */
+        .view-panel {
+            display: none !important; /* Forces all non-active screens to absolute hidden */
+        }
+        .view-panel.active {
+            display: block !important; /* Force displays the active workspace screen */
         }
 
         .card {
@@ -249,7 +237,7 @@
             box-shadow: 0 10px 25px rgba(223, 186, 107, 0.25);
         }
         .btn-danger { background: #ef4444; }
-        .btn-danger:hover { background: #dc2626; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background: #dc2626; }
 
         input, select, textarea {
             width: 100%;
@@ -269,9 +257,6 @@
             background: rgba(10, 12, 16, 0.7);
             box-shadow: 0 0 20px rgba(242, 101, 34, 0.25);
         }
-
-        .view-panel { display: none; }
-        .view-panel.active { display: block; }
 
         .owner-layout {
             display: grid;
@@ -307,7 +292,6 @@
         .member-item.active {
             background: rgba(242, 101, 34, 0.08);
             border-color: rgba(242, 101, 34, 0.5);
-            box-shadow: 0 0 15px rgba(242, 101, 34, 0.1);
         }
 
         .member-code-badge {
@@ -345,7 +329,6 @@
         .tab.active {
             border-bottom-color: var(--primary);
             color: #ffffff;
-            text-shadow: 0 0 10px rgba(242, 101, 34, 0.3);
         }
 
         table {
@@ -360,7 +343,6 @@
             font-size: 0.85rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
             border-bottom: 1px solid var(--glass-border);
         }
         td {
@@ -383,10 +365,9 @@
             z-index: 100;
         }
 
-        /* Metrics grid styling */
         .identity-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 1.5rem;
             margin-top: 1.5rem;
         }
@@ -403,10 +384,6 @@
             overflow: hidden;
             background: rgba(0,0,0,0.3);
             position: relative;
-            transition: all 0.3s;
-        }
-        .avatar-uploader:hover {
-            border-color: var(--primary);
         }
         .avatar-uploader img {
             width: 100%;
@@ -429,6 +406,7 @@
 
     <div class="container">
 
+        <!-- VIEW 1: LANDING ENTRYWAY PORTAL -->
         <div id="portal-view" class="view-panel active animate-ui">
             <div class="portal-hero">
                 <div class="floating-gym-sign">
@@ -451,6 +429,7 @@
             </div>
         </div>
 
+        <!-- VIEW 2: COACH AUTHORIZATION WINDOW -->
         <div id="owner-auth-view" class="view-panel animate-ui">
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Coach Authorization</h3>
@@ -464,6 +443,7 @@
             </div>
         </div>
 
+        <!-- VIEW 3: ATHLETE LOG IN ENTRY -->
         <div id="member-auth-view" class="view-panel animate-ui">
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Athlete Log-In</h3>
@@ -477,6 +457,7 @@
             </div>
         </div>
 
+        <!-- VIEW 4: COACH MAIN DASHBOARD PANEL -->
         <div id="owner-dashboard-view" class="view-panel animate-ui">
             <div class="owner-layout">
                 <div class="member-sidebar">
@@ -493,12 +474,14 @@
             </div>
         </div>
 
+        <!-- VIEW 5: LIVE RENDERED ATHLETE WORKSPACE -->
         <div id="member-display-view" class="view-panel animate-ui">
             <div id="member-display-content"></div>
         </div>
 
     </div>
 
+    <!-- Live Telemetry Status Bar -->
     <div class="sync-log">
         <span>A-Gain Central Data Pipeline Matrix</span>
         <span id="sync-status-text">Status: Connected</span>
@@ -519,11 +502,11 @@
         let debounceTimeout = null;
 
         window.onload = async function() {
-            // Check for explicit local custom trainer PIN backups
+            // Recover master pin cache if modified
             const cachedPin = localStorage.getItem('again_fitness_pin');
             if(cachedPin) { appData.ownerPin = cachedPin; }
             
-            // Handle Direct Navigation Routing Systems via Parameters
+            // Check direct link routes
             const urlParams = new URLSearchParams(window.location.search);
             const directId = urlParams.get('id');
 
@@ -531,7 +514,6 @@
                 const targetId = directId.toUpperCase();
                 showStatusText("Loading Remote Matrix...", "var(--gold)");
                 
-                // Fetch single profile data dynamically from database rows
                 const { data, error } = await supabase
                     .from('athletes')
                     .select('*')
@@ -563,57 +545,44 @@
             logText.style.color = color;
         }
         
-        // Save targeted updates directly into remote tables instead of client cache strings
-        function syncData(memberId) {
-            if (!memberId || !appData.members[memberId]) return;
-            
-            showStatusText("Syncing Changes...", "var(--primary)");
-            
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(async () => {
-                const targetProfile = appData.members[memberId];
-                
-                const { error } = await supabase
-                    .from('athletes')
-                    .upsert({ 
-                        id: memberId, 
-                        data: targetProfile,
-                        updated_at: new Date().toISOString()
-                    });
+        function showView(viewId) {
+            // First disable all viewports
+            document.querySelectorAll('.view-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            // Target specific interface node and switch active status
+            const targetElement = document.getElementById(viewId);
+            if (targetElement) {
+                targetElement.classList.add('active');
+            }
 
-                if(!error) {
-                    showStatusText("Pipeline Synchronized Live!", "#4ade80");
-                    setTimeout(() => { showStatusText("Status: Connected", "var(--gold)"); }, 2000);
-                } else {
-                    showStatusText("Sync Error!", "#ef4444");
-                    console.error("Supabase Error Context:", error);
-                }
-            }, 400);
-        }
-
-        async function showView(viewId) {
-            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
-            const element = document.getElementById(viewId);
-            element.classList.add('active');
-            
             if(viewId === 'owner-dashboard-view') { 
-                showStatusText("Hydrating Roster Registry...", "var(--gold)");
-                const { data, error } = await supabase.from('athletes').select('*');
-                if (data && !error) {
-                    appData.members = {};
-                    data.forEach(row => {
-                        appData.members[row.id] = row.data;
-                    });
-                }
-                showStatusText("Status: Connected", "var(--gold)");
-                renderRoster(); 
-                renderWorkbench(); 
+                loadAndRenderOwnerData();
             }
         }
 
+        async function loadAndRenderOwnerData() {
+            showStatusText("Hydrating Roster Registry...", "var(--gold)");
+            const { data, error } = await supabase.from('athletes').select('*');
+            if (data && !error) {
+                appData.members = {};
+                data.forEach(row => {
+                    appData.members[row.id] = row.data;
+                });
+            }
+            showStatusText("Status: Connected", "var(--gold)");
+            renderRoster(); 
+            renderWorkbench();
+        }
+
         function verifyOwnerPin() {
-            if(document.getElementById('owner-pin').value === appData.ownerPin) { showView('owner-dashboard-view'); } 
-            else { document.getElementById('owner-auth-error').style.display = 'block'; }
+            const entered = document.getElementById('owner-pin').value;
+            if(entered === appData.ownerPin) { 
+                document.getElementById('owner-auth-error').style.display = 'none';
+                showView('owner-dashboard-view'); 
+            } else { 
+                document.getElementById('owner-auth-error').style.display = 'block'; 
+            }
         }
 
         function promptChangePin() {
@@ -629,6 +598,8 @@
 
         async function verifyMemberCode() {
             const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
+            if (!targetCode) return;
+            
             showStatusText("Connecting to Matrix...", "var(--gold)");
             
             const { data, error } = await supabase
@@ -638,7 +609,7 @@
                 .single();
 
             if(data && !error) { 
-                // Set parameter mapping seamlessly inside navigation window histories
+                document.getElementById('member-auth-error').style.display = 'none';
                 window.history.replaceState({}, document.title, `?id=${targetCode}`);
                 renderMemberDisplayView(data.data); 
                 showView('member-display-view'); 
@@ -648,7 +619,6 @@
             }
         }
 
-        // Realtime sync module mapping client-side visual viewports instantly
         function setupLiveClientSubscription(athleteId) {
             if (activeRealtimeChannel) {
                 supabase.removeChannel(activeRealtimeChannel);
@@ -702,7 +672,6 @@
 
             appData.members[newId] = newProfileObj;
             
-            // Insert instantly directly down Supabase Engine layout
             await supabase.from('athletes').insert({ id: newId, data: newProfileObj });
             
             inputField.value = ''; 
@@ -719,6 +688,31 @@
                 renderRoster(); 
                 renderWorkbench(); 
             }
+        }
+
+        function syncData(memberId) {
+            if (!memberId || !appData.members[memberId]) return;
+            showStatusText("Syncing Changes...", "var(--primary)");
+            
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(async () => {
+                const targetProfile = appData.members[memberId];
+                
+                const { error } = await supabase
+                    .from('athletes')
+                    .upsert({ 
+                        id: memberId, 
+                        data: targetProfile,
+                        updated_at: new Date().toISOString()
+                    });
+
+                if(!error) {
+                    showStatusText("Pipeline Synchronized Live!", "#4ade80");
+                    setTimeout(() => { showStatusText("Status: Connected", "var(--gold)"); }, 1500);
+                } else {
+                    showStatusText("Sync Error!", "#ef4444");
+                }
+            }, 400);
         }
 
         function copyShareLink(memberId) {
