@@ -427,7 +427,6 @@
 
     <div class="container">
 
-        <!-- Initial View -->
         <div id="portal-view" class="view-panel active animate-ui">
             <div class="portal-hero">
                 <div class="floating-gym-sign">
@@ -450,7 +449,6 @@
             </div>
         </div>
 
-        <!-- Coach Login -->
         <div id="owner-auth-view" class="view-panel animate-ui">
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Coach Authorization</h3>
@@ -464,7 +462,6 @@
             </div>
         </div>
 
-        <!-- Athlete Login -->
         <div id="member-auth-view" class="view-panel animate-ui">
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Athlete Log-In</h3>
@@ -478,7 +475,6 @@
             </div>
         </div>
 
-        <!-- Trainer Dashboard Layout -->
         <div id="owner-dashboard-view" class="view-panel animate-ui">
             <div class="owner-layout">
                 <div class="member-sidebar">
@@ -495,7 +491,6 @@
             </div>
         </div>
 
-        <!-- Athlete Display View -->
         <div id="member-display-view" class="view-panel animate-ui">
             <div id="member-display-content"></div>
         </div>
@@ -517,15 +512,34 @@
             if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
             
             const urlParams = new URLSearchParams(window.location.search);
-            const directId = urlParams.get('id');
+            const rawPayload = urlParams.get('p');
+            const urlId = urlParams.get('id');
 
-            if (directId) {
-                const targetId = directId.trim();
+            // HYBRID SYNC: Check if a data update payload exists in the link URL
+            if (rawPayload) {
+                try {
+                    const decryptedData = JSON.parse(decodeURIComponent(atob(rawPayload)));
+                    if (decryptedData && decryptedData.id) {
+                        // Inject/Sync data directly into the client phone's memory
+                        appData.members[decryptedData.id] = decryptedData;
+                        localStorage.setItem('again_fitness_master_db_v2', JSON.stringify(appData));
+                        
+                        renderMemberDisplayView(decryptedData);
+                        showView('member-display-view');
+                        return;
+                    }
+                } catch(e) {
+                    console.error("Payload parse error", e);
+                }
+            }
+            
+            // Check fallback for short unique ID lookup 
+            if (urlId) {
+                const targetId = urlId.trim();
                 if(appData.members[targetId]) { 
                     renderMemberDisplayView(appData.members[targetId]); 
                     showView('member-display-view'); 
                 } else {
-                    alert("Profile code not found in local browser database.");
                     document.getElementById('member-code').value = targetId;
                     showView('member-auth-view');
                 }
@@ -591,7 +605,7 @@
             const name = inputField.value.trim();
             if(!name) return;
             
-            // Generate entirely numeric 4-digit unique identifier
+            // Clean entirely numeric 4-digit unique identifier
             const newId = `${Math.floor(1000 + Math.random() * 9000)}`;
             
             appData.members[newId] = { 
@@ -624,12 +638,19 @@
             }
         }
 
-        // PERMANENT LINK GENERATOR: Clean, incredibly tiny link pointing to their numeric token ID
+        // PERFECT SMART LINK GENERATOR: Strips image weight, but sends clean data that injects into client storage permanently!
         function copyShareLink(memberId) {
-            const directUrl = `${window.location.origin}${window.location.pathname}?id=${memberId}`;
+            const profileData = appData.members[memberId];
+            
+            // Clone object to strip photo payload completely out of the link
+            const optimizedPayload = JSON.parse(JSON.stringify(profileData));
+            optimizedPayload.photo = ""; 
+
+            const base64String = btoa(unescape(encodeURIComponent(JSON.stringify(optimizedPayload))));
+            const directUrl = `${window.location.origin}${window.location.pathname}?p=${base64String}`;
             
             navigator.clipboard.writeText(directUrl).then(() => { 
-                alert(`Permanent Athlete Access Link Copied!\n\nThis link is ultra-short and will automatically update whenever you change their routine!`); 
+                alert(`Smart Link Copied Successfully!\n\nWhen your member opens this link ONCE, their phone permanently saves the profile layout. Going forward, they can check it anytime without errors!`); 
             });
         }
 
@@ -673,7 +694,7 @@
                             <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.25rem;">Roster ID Token: <strong style="color:var(--gold); font-family:monospace;">${member.id}</strong></p>
                         </div>
                         <div style="display:flex; gap:0.75rem;">
-                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Permanent Link</button>
+                            <button class="btn btn-gold" onclick="copyShareLink('${member.id}')">📋 Copy Smart Share Link</button>
                             <button class="btn btn-danger" onclick="deleteMember('${member.id}')">Delete Profile</button>
                         </div>
                     </div>
@@ -851,7 +872,6 @@
                     <h2 style="font-size:3rem; margin-top:0.35rem; font-weight:800; text-transform: uppercase; line-height: 1.1;">${member.name}</h2>
                 </div>
 
-                <!-- Metrics Card -->
                 <div class="card" style="margin-bottom:2.5rem;">
                     <h3 style="border-bottom:2px solid #5a657a; padding-bottom:0.75rem; margin-bottom:1.5rem; color:#f3f4f6; font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">👤 ATHLETE STATS DETAILS</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem;">
@@ -878,7 +898,6 @@
                     </div>
                 </div>
 
-                <!-- Workouts -->
                 <div class="card" style="margin-bottom:2.5rem;">
                     <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--primary); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🏋️‍♂️ TARGET ROTATION ROUTINE WORKOUT SHEET</h3>
             `;
