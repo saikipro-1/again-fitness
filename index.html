@@ -469,7 +469,7 @@
             <div class="card" style="max-width: 460px; margin: 4rem auto 0 auto;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Athlete Log-In</h3>
                 <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">Input the unique ID assigned to your profile record</p>
-                <input type="text" id="member-code" placeholder="e.g., AGN-4321" style="text-transform: uppercase;">
+                <input type="text" id="member-code" placeholder="e.g., 4321">
                 <div style="display:flex; gap:0.75rem;">
                     <button class="btn" style="flex:1;" onclick="verifyMemberCode()">Load Profile</button>
                     <button class="btn btn-secondary" onclick="showView('portal-view')">Back</button>
@@ -497,6 +497,10 @@
 
         <!-- Athlete Display View -->
         <div id="member-display-view" class="view-panel animate-ui">
+            <div id="loading-state" style="display:none; text-align:center; padding: 5rem 0;">
+                <h2 style="color:var(--gold);">Syncing Live Athlete Portfolio...</h2>
+                <p style="color: var(--text-muted); margin-top: 1rem;">Pulling latest program edits from cloud pipeline.</p>
+            </div>
             <div id="member-display-content"></div>
         </div>
 
@@ -512,32 +516,29 @@
         let currentSelectedMemberId = null;
         let currentOwnerTab = 'identity'; 
 
+        // Free JSON storage system endpoint to dynamically sync programs online instantly
+        const JSON_BIN_URL = "https://kv.val.town/v1/entries"; 
+
         window.onload = function() {
             const cached = localStorage.getItem('again_fitness_master_db_v2');
             if(cached) { try { appData = JSON.parse(cached); } catch(e){} }
             
             const urlParams = new URLSearchParams(window.location.search);
-            const rawData = urlParams.get('p');
+            const cloudId = urlParams.get('p'); 
             const directId = urlParams.get('id');
 
-            if (rawData) {
-                try {
-                    const decryptedData = JSON.parse(atob(rawData));
-                    renderMemberDisplayView(decryptedData, true);
-                    showView('member-display-view');
-                    return;
-                } catch(e) {
-                    console.error("Payload decoding failed", e);
-                }
+            if (cloudId) {
+                // If athlete accesses the portal via their shared ID link
+                fetchCloudMemberData(cloudId);
+                return;
             }
             
             if (directId) {
-                const targetId = directId.toUpperCase();
+                const targetId = directId.trim();
                 if(appData.members[targetId]) { 
-                    renderMemberDisplayView(appData.members[targetId], false); 
+                    renderMemberDisplayView(appData.members[targetId]); 
                     showView('member-display-view'); 
                 } else {
-                    alert("Handshake profile code required to look up local offline database.");
                     document.getElementById('member-code').value = targetId;
                     showView('member-auth-view');
                 }
@@ -555,6 +556,62 @@
             logText.innerText = `Pipeline Synchronized Live!`;
             logText.style.color = "#4ade80";
             setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
+        }
+
+        // Live cloud lookup so athlete links auto-update seamlessly without re-sharing links
+        async function syncToCloud(memberId) {
+            const memberData = appData.members[memberId];
+            if (!memberData) return;
+
+            const logText = document.getElementById('sync-status-text');
+            logText.innerText = `Pushing live updates to Cloud Pipeline...`;
+            logText.style.color = "var(--gold)";
+
+            try {
+                // Save simplified payload without photo overhead to prevent size limit rejections
+                const strippedPayload = { ...memberData, photo: "" };
+                
+                await fetch(`${JSON_BIN_URL}/again_fit_${memberId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(strippedPayload)
+                });
+                
+                logText.innerText = `Cloud Sync Successful!`;
+                logText.style.color = "#4ade80";
+                setTimeout(() => { logText.innerText = "Status: Connected"; logText.style.color = "var(--gold)"; }, 2000);
+            } catch (error) {
+                console.error("Cloud syncing failed:", error);
+                logText.innerText = `Cloud Sync Timeout (Using Offline Link)`;
+                logText.style.color = "#ef4444";
+            }
+        }
+
+        async function fetchCloudMemberData(memberId) {
+            document.getElementById('loading-state').style.display = 'block';
+            document.getElementById('member-display-content').style.display = 'none';
+            showView('member-display-view');
+
+            try {
+                const response = await fetch(`${JSON_BIN_URL}/again_fit_${memberId}`);
+                if (response.ok) {
+                    const cloudData = await response.json();
+                    renderMemberDisplayView(cloudData);
+                } else {
+                    throw new Error("Target not located on server. Loading local cached client profile instead.");
+                }
+            } catch (error) {
+                console.warn(error.message);
+                if (appData.members[memberId]) {
+                    renderMemberDisplayView(appData.members[memberId]);
+                } else {
+                    alert("Profile record not found on live database. Please confirm the link is correct.");
+                    resetToPortal();
+                }
+            } finally {
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('member-display-content').style.display = 'block';
+            }
         }
 
         function showView(viewId) {
@@ -577,10 +634,9 @@
         }
 
         function verifyMemberCode() {
-            const targetCode = document.getElementById('member-code').value.trim().toUpperCase();
+            const targetCode = document.getElementById('member-code').value.trim();
             if(appData.members[targetCode]) { 
-                renderMemberDisplayView(appData.members[targetCode], false); 
-                showView('member-display-view'); 
+                fetchCloudMemberData(targetCode);
             } else { 
                 document.getElementById('member-auth-error').style.display = 'block'; 
             }
@@ -602,7 +658,9 @@
             const inputField = document.getElementById('new-member-name');
             const name = inputField.value.trim();
             if(!name) return;
-            const newId = `AGN-${Math.floor(1000 + Math.random() * 9000)}`;
+            
+            // Clean 4-Digit strictly numerical PIN generations
+            const newId = `${Math.floor(1000 + Math.random() * 9000)}`;
             
             appData.members[newId] = { 
                 id: newId, 
@@ -620,6 +678,7 @@
             inputField.value = ''; 
             currentSelectedMemberId = newId; 
             syncData(); 
+            syncToCloud(newId);
             renderRoster(); 
             renderWorkbench();
         }
@@ -634,19 +693,15 @@
             }
         }
 
-        // COMPRESSED SHARE LINK (Strips out Base64 Photo Data to fit within WhatsApp limits)
-        function copyShareLink(memberId) {
-            const profileData = appData.members[memberId];
+        async function copyShareLink(memberId) {
+            // Force sync edits to the dynamic server first
+            await syncToCloud(memberId);
             
-            // Deep clone object structure to avoid deleting the original photo from trainer's database
-            const optimizedPayload = JSON.parse(JSON.stringify(profileData));
-            optimizedPayload.photo = ""; 
-
-            const base64String = btoa(unescape(encodeURIComponent(JSON.stringify(optimizedPayload))));
-            const directUrl = `${window.location.origin}${window.location.pathname}?p=${base64String}`;
+            // Generate clean URL that loads live dynamic updates through the member profile ID
+            const directUrl = `${window.location.origin}${window.location.pathname}?p=${memberId}`;
             
             navigator.clipboard.writeText(directUrl).then(() => { 
-                alert(`WhatsApp Optimized Share Link Copied!\n\nThis link contains all profile details without photo payload overhead, making it light enough to share anywhere!`); 
+                alert(`WhatsApp Optimized Share Link Copied!\n\nThis dynamic link pulls all future updates automatically, so you never have to send it twice.`); 
             });
         }
 
@@ -656,8 +711,10 @@
                 const hMeters = member.height / 100;
                 const bmiVal = (member.weight / (hMeters * hMeters)).toFixed(1);
                 member.bmi = bmiVal;
-                document.getElementById('member-bmi-input').value = bmiVal;
+                const bmiInput = document.getElementById('member-bmi-input');
+                if (bmiInput) bmiInput.value = bmiVal;
                 syncData();
+                syncToCloud(memberId);
             }
         }
 
@@ -670,9 +727,67 @@
                     appData.members[currentSelectedMemberId].photo = base64Img;
                     document.getElementById('member-avatar-preview').src = base64Img;
                     syncData();
+                    syncToCloud(currentSelectedMemberId);
                 }
                 reader.readAsDataURL(file);
             }
+        }
+
+        function switchTab(tabId) {
+            currentOwnerTab = tabId;
+            renderWorkbench();
+        }
+
+        function updateIdentityField(field, value) {
+            appData.members[currentSelectedMemberId][field] = value;
+            syncData();
+            syncToCloud(currentSelectedMemberId);
+        }
+
+        /* WORKOUT LOGIC MODULES */
+        function addWorkoutRow() {
+            const member = appData.members[currentSelectedMemberId];
+            if (!member.workout) member.workout = [];
+            member.workout.push({ day: "", exercise: "", sets: "", reps: "", load: "" });
+            syncData();
+            syncToCloud(currentSelectedMemberId);
+            renderWorkbench();
+        }
+
+        function updateWorkoutRow(index, field, value) {
+            appData.members[currentSelectedMemberId].workout[index][field] = value;
+            syncData();
+            syncToCloud(currentSelectedMemberId);
+        }
+
+        function deleteWorkoutRow(index) {
+            appData.members[currentSelectedMemberId].workout.splice(index, 1);
+            syncData();
+            syncToCloud(currentSelectedMemberId);
+            renderWorkbench();
+        }
+
+        /* DIETARY LOGIC MODULES */
+        function addDietRow() {
+            const member = appData.members[currentSelectedMemberId];
+            if (!member.diet) member.diet = [];
+            member.diet.push({ name: "", foods: "", protein: "", carbs: "", fats: "", calories: "" });
+            syncData();
+            syncToCloud(currentSelectedMemberId);
+            renderWorkbench();
+        }
+
+        function updateDietRow(index, field, value) {
+            appData.members[currentSelectedMemberId].diet[index][field] = value;
+            syncData();
+            syncToCloud(currentSelectedMemberId);
+        }
+
+        function deleteDietRow(index) {
+            appData.members[currentSelectedMemberId].diet.splice(index, 1);
+            syncData();
+            syncToCloud(currentSelectedMemberId);
+            renderWorkbench();
         }
 
         function renderWorkbench() {
@@ -747,208 +862,214 @@
                 html += `
                     <div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                            <h3 style="color: var(--primary);">Custom Days Rotation</h3>
-                            <button class="btn" style="padding: 0.6rem 1.25rem; font-size:0.85rem;" onclick="addWorkoutDay()">➕ Add Workout Day</button>
+                            <h3 style="color: var(--primary);">Routine Design Matrix</h3>
+                            <button class="btn btn-secondary" onclick="addWorkoutRow()">➕ Add Exercise Loop</button>
                         </div>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Day/Split</th>
+                                        <th>Exercise Block</th>
+                                        <th>Sets</th>
+                                        <th>Reps Range</th>
+                                        <th>Target Load</th>
+                                        <th style="width: 80px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${member.workout && member.workout.length > 0 ? member.workout.map((w, index) => `
+                                        <tr>
+                                            <td><input type="text" value="${w.day || ''}" placeholder="e.g. Push Day" oninput="updateWorkoutRow(${index}, 'day', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="text" value="${w.exercise || ''}" placeholder="e.g. Incline Press" oninput="updateWorkoutRow(${index}, 'exercise', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="number" value="${w.sets || ''}" placeholder="4" oninput="updateWorkoutRow(${index}, 'sets', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="text" value="${w.reps || ''}" placeholder="8-12" oninput="updateWorkoutRow(${index}, 'reps', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="text" value="${w.load || ''}" placeholder="e.g. 80kg / RPE 8" oninput="updateWorkoutRow(${index}, 'load', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><button class="btn btn-danger" onclick="deleteWorkoutRow(${index})" style="padding: 0.5rem 0.85rem;">❌</button></td>
+                                        </tr>
+                                    `).join('') : `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No lifting routines loaded. Initialize training rows above.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 `;
-                if(!member.workout || member.workout.length === 0) {
-                    html += `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">No custom training days added yet. Click Add Workout Day above to structure schedule.</div>`;
-                } else {
-                    member.workout.forEach((block, dayIndex) => {
-                        html += `
-                            <div style="background: rgba(0,0,0,0.2); padding:1.5rem; border-radius:16px; margin-bottom:1.5rem; border:1px solid var(--glass-border)">
-                                <div style="display:flex; gap:0.75rem; margin-bottom:1.25rem; align-items: center;">
-                                    <input type="text" value="${block.day}" placeholder="Day (e.g. Day 1 / Monday)" style="width:160px; margin:0; font-weight:700; color:var(--primary);" onchange="updateDayName(${dayIndex}, this.value)">
-                                    <input type="text" value="${block.target}" placeholder="Focus Split Name" style="margin:0; font-weight: 600;" onchange="updateDayTarget(${dayIndex}, this.value)">
-                                    <button class="btn btn-danger" style="padding: 0.9rem 1.2rem; margin:0;" onclick="removeWorkoutDay(${dayIndex})">✕ Day</button>
-                                </div>
-                            <div style="padding-left:1.25rem; border-left: 2px dashed var(--primary);">
-                        `;
-                        block.moves.forEach((move, moveIndex) => {
-                            html += `
-                                <div class="row-entry">
-                                    <input type="text" value="${move.name}" placeholder="Exercise Description Name" style="margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'name', this.value)">
-                                    <input type="text" value="${move.sets}" placeholder="Sets" style="width:90px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'sets', this.value)">
-                                    <input type="text" value="${move.reps}" placeholder="Reps Range" style="width:110px; margin:0;" oninput="updateMoveField(${dayIndex}, ${moveIndex}, 'reps', this.value)">
-                                    <button class="btn btn-secondary" style="padding:0.95rem 1.25rem; margin:0;" onclick="removeMove(${dayIndex}, ${moveIndex})">✕</button>
-                                </div>
-                            `;
-                        });
-                        html += `<button class="btn btn-secondary" style="font-size:0.85rem; padding:0.5rem 1rem; margin-top:0.75rem;" onclick="addMove(${dayIndex})">➕ Add Exercise Slot</button></div></div>`;
-                    });
-                }
-                html += `</div>`;
-            } else {
+            } else if(currentOwnerTab === 'diet') {
                 html += `
                     <div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                            <h3 style="color: var(--gold);">Dietary Structure</h3>
-                            <button class="btn btn-gold" style="padding: 0.6rem 1.25rem; font-size:0.85rem;" onclick="addDietMeal()">➕ Add Meal Slot</button>
+                            <h3 style="color: var(--primary);">Macro Targets & Diet Profiles</h3>
+                            <button class="btn btn-secondary" onclick="addDietRow()">➕ Add Meal Plan</button>
                         </div>
-                `;
-                if(!member.diet || member.diet.length === 0) {
-                    html += `<div style="text-align:center; padding: 3rem; color: var(--text-muted);">No dietary layout structured yet. Click Add Meal Slot above to allocate custom nutritional layout.</div>`;
-                } else {
-                    member.diet.forEach((meal, mealIndex) => {
-                        html += `
-                            <div class="row-entry" style="align-items: flex-start; gap:1.25rem; margin-bottom: 1.5rem;">
-                                <input type="text" value="${meal.meal}" placeholder="Meal Type" style="width:240px; margin:0; font-weight:700; color:var(--gold);" oninput="updateDietField(${mealIndex}, 'meal', this.value)">
-                                <textarea style="margin:0; height:85px; resize:vertical;" placeholder="Insert ingredients or macros..." oninput="updateDietField(${mealIndex}, 'items', this.value)">${meal.items}</textarea>
-                                <button class="btn btn-danger" style="padding:0.95rem 1.25rem; margin:0; font-size:0.9rem;" onclick="removeDietMeal(${mealIndex})">✕</button>
-                            </div>
-                        `;
-                    });
-                }
-                html += `</div>`;
-            }
-            html += `</div>`; container.innerHTML = html;
-        }
-
-        function switchTab(tabName) { currentOwnerTab = tabName; renderWorkbench(); }
-        
-        function updateIdentityField(field, val) { 
-            appData.members[currentSelectedMemberId][field] = val; 
-            syncData(); 
-        }
-
-        function addWorkoutDay() {
-            if(!appData.members[currentSelectedMemberId].workout) appData.members[currentSelectedMemberId].workout = [];
-            appData.members[currentSelectedMemberId].workout.push({ day: "Workout Day", target: "Split focus spec", moves: [] });
-            syncData();
-            renderWorkbench();
-        }
-        function removeWorkoutDay(dayIdx) {
-            if(confirm("Confirm removing this full routine day block?")) {
-                appData.members[currentSelectedMemberId].workout.splice(dayIdx, 1);
-                syncData();
-                renderWorkbench();
-            }
-        }
-        function updateDayName(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].day = val; syncData(); }
-        function updateDayTarget(dIdx, val) { appData.members[currentSelectedMemberId].workout[dIdx].target = val; syncData(); }
-        
-        function addMove(dIdx) { 
-            appData.members[currentSelectedMemberId].workout[dIdx].moves.push({ name: "", sets: "", reps: "" }); 
-            syncData(); 
-            renderWorkbench(); 
-        }
-        function updateMoveField(dIdx, mIdx, field, val) { 
-            appData.members[currentSelectedMemberId].workout[dIdx].moves[mIdx][field] = val; 
-            syncData(); 
-        }
-        function removeMove(dIdx, mIdx) { 
-            appData.members[currentSelectedMemberId].workout[dIdx].moves.splice(mIdx, 1); 
-            syncData(); 
-            renderWorkbench(); 
-        }
-
-        function addDietMeal() {
-            if(!appData.members[currentSelectedMemberId].diet) appData.members[currentSelectedMemberId].diet = [];
-            appData.members[currentSelectedMemberId].diet.push({ meal: "Meal Slot Name", items: "" });
-            syncData();
-            renderWorkbench();
-        }
-        function removeDietMeal(mealIdx) {
-            appData.members[currentSelectedMemberId].diet.splice(mealIdx, 1);
-            syncData();
-            renderWorkbench();
-        }
-        function updateDietField(mIdx, field, val) { 
-            appData.members[currentSelectedMemberId].diet[mIdx][field] = val; 
-            syncData(); 
-        }
-
-        // Athlete View Rendering (Client View)
-        function renderMemberDisplayView(member, isEmbeddedPayload = false) {
-            const displayBox = document.getElementById('member-display-content');
-            
-            let html = `
-                <div style="text-align: center; margin-bottom: 3.5rem;">
-                    <p style="text-transform:uppercase; letter-spacing:1.5px; color:var(--gold); font-size:0.9rem; font-weight:600;">Custom Training Profile Portal</p>
-                    <h2 style="font-size:3rem; margin-top:0.35rem; font-weight:800; text-transform: uppercase; line-height: 1.1;">${member.name}</h2>
-                </div>
-
-                <!-- Metrics Card -->
-                <div class="card" style="margin-bottom:2.5rem;">
-                    <h3 style="border-bottom:2px solid #5a657a; padding-bottom:0.75rem; margin-bottom:1.5rem; color:#f3f4f6; font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">👤 ATHLETE STATS DETAILS</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem;">
-                        <div>
-                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">HEIGHT</span>
-                            <strong style="font-size: 1.25rem; color: var(--text-main);">${member.height ? member.height + ' cm' : '—'}</strong>
-                        </div>
-                        <div>
-                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">WEIGHT</span>
-                            <strong style="font-size: 1.25rem; color: var(--text-main);">${member.weight ? member.weight + ' kg' : '—'}</strong>
-                        </div>
-                        <div>
-                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">BMI VALUE</span>
-                            <strong style="font-size: 1.25rem; color: var(--gold);">${member.bmi ? member.bmi : '—'}</strong>
-                        </div>
-                        <div>
-                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">PHYSIQUE GOAL</span>
-                            <strong style="font-size: 1.15rem; color: var(--primary);">${member.goal ? member.goal : '—'}</strong>
-                        </div>
-                        <div>
-                            <span style="display: block; font-size: 0.85rem; color: var(--text-muted);">EXPIRE DURATION</span>
-                            <strong style="font-size: 1.15rem; color: #34d399;">${member.feesDuration ? member.feesDuration : 'Active Setup'}</strong>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Meal Name / Time</th>
+                                        <th>Detailed Portions</th>
+                                        <th>Pro (g)</th>
+                                        <th>Carb (g)</th>
+                                        <th>Fat (g)</th>
+                                        <th>Cal (kcal)</th>
+                                        <th style="width: 80px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${member.diet && member.diet.length > 0 ? member.diet.map((d, index) => `
+                                        <tr>
+                                            <td><input type="text" value="${d.name || ''}" placeholder="e.g. Breakfast" oninput="updateDietRow(${index}, 'name', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="text" value="${d.foods || ''}" placeholder="e.g. 4 Eggs, Avocado" oninput="updateDietRow(${index}, 'foods', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="number" value="${d.protein || ''}" placeholder="30" oninput="updateDietRow(${index}, 'protein', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="number" value="${d.carbs || ''}" placeholder="40" oninput="updateDietRow(${index}, 'carbs', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="number" value="${d.fats || ''}" placeholder="12" oninput="updateDietRow(${index}, 'fats', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><input type="number" value="${d.calories || ''}" placeholder="450" oninput="updateDietRow(${index}, 'calories', this.value)" style="margin:0; padding: 0.5rem 0.85rem;"></td>
+                                            <td><button class="btn btn-danger" onclick="deleteDietRow(${index})" style="padding: 0.5rem 0.85rem;">❌</button></td>
+                                        </tr>
+                                    `).join('') : `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No meals configured. Map nutritional structures above.</td></tr>`}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
-
-                <!-- Workouts -->
-                <div class="card" style="margin-bottom:2.5rem;">
-                    <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--primary); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🏋️‍♂️ TARGET ROTATION ROUTINE WORKOUT SHEET</h3>
-            `;
-
-            if(!member.workout || member.workout.length === 0) {
-                html += `<p style="color:var(--text-muted); font-size:0.95rem; font-style:italic; text-align:center; padding: 2rem 0;">No scheduled split days are registered currently.</p>`;
-            } else {
-                member.workout.forEach(day => {
-                    html += `
-                        <div style="margin-bottom:1.75rem; background:rgba(0,0,0,0.2); padding:1.75rem; border-radius:16px; border-left: 4px solid var(--primary); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
-                            <h4 style="font-size:1.25rem; font-weight:700;">${day.day} <span style="font-weight:400; font-size:1.05rem; color:var(--text-muted);">— ${day.target}</span></h4>
-                    `;
-                    if(!day.moves || day.moves.length === 0) {
-                        html += `<p style="color:var(--text-muted); font-size:0.95rem; margin-top:0.75rem; font-style:italic;">Rest day or customized layout designated by coach structure.</p>`;
-                    } else {
-                        html += `<table>
-                                <thead><tr><th>Movement Exercise Spec</th><th style="width:100px;">Sets</th><th style="width:120px;">Reps Range</th></tr></thead>
-                                <tbody>`;
-                        day.moves.forEach(move => {
-                            html += `<tr>
-                                <td style="font-weight:600; color:#ffffff;">${move.name || '—'}</td>
-                                <td style="color:var(--gold); font-weight:600;">${move.sets || '—'}</td>
-                                <td style="color:var(--text-muted);">${move.reps || '—'}</td>
-                            </tr>`;
-                        });
-                        html += `</tbody></table>`;
-                    }
-                    html += `</div>`;
-                });
-            }
-
-            // Diet Structure
-            html += `
-                </div>
-                <div class="card">
-                    <h3 style="border-bottom:2px solid var(--gold); padding-bottom:0.75rem; margin-bottom:2rem; color:var(--gold); font-size:1.35rem; font-weight:700; letter-spacing:0.5px;">🥗 CUSTOM DIETARY MACROS PLAN</h3>
-            `;
-
-            if(!member.diet || member.diet.length === 0) {
-                html += `<p style="color:var(--text-muted); font-size:0.95rem; font-style:italic; text-align:center; padding: 2rem 0;">No customized dietary plan currently saved.</p>`;
-            } else {
-                member.diet.forEach(meal => {
-                    html += `
-                        <div style="margin-bottom:1.75rem; background:rgba(0,0,0,0.2); padding:1.75rem; border-radius:16px; border-left: 4px solid var(--gold); border-top:1px solid var(--glass-border); border-right:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);">
-                            <h4 style="font-size:1.2rem; font-weight:700; margin-bottom:0.75rem; color:#ffffff;">${meal.meal}</h4>
-                            <p style="color:var(--text-muted); font-size:1rem; line-height:1.6; white-space: pre-wrap;">${meal.items || 'Rest/Nutritional target unspecified.'}</p>
-                        </div>
-                    `;
-                });
+                `;
             }
 
             html += `</div>`;
-            displayBox.innerHTML = html;
+            container.innerHTML = html;
+        }
+
+        function renderMemberDisplayView(member) {
+            const container = document.getElementById('member-display-content');
+            
+            let totalProtein = 0, totalCarbs = 0, totalFats = 0, totalCalories = 0;
+            if (member.diet) {
+                member.diet.forEach(d => {
+                    totalProtein += parseFloat(d.protein) || 0;
+                    totalCarbs += parseFloat(d.carbs) || 0;
+                    totalFats += parseFloat(d.fats) || 0;
+                    totalCalories += parseFloat(d.calories) || 0;
+                });
+            }
+
+            container.innerHTML = `
+                <div class="card" style="max-width: 950px; margin: 0 auto;">
+                    <div style="display: flex; gap: 2rem; align-items: center; justify-content: space-between; flex-wrap: wrap; border-bottom: 1px solid var(--glass-border); padding-bottom: 2rem; margin-bottom: 2.5rem;">
+                        <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                            ${member.photo ? `
+                                <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 2px solid var(--primary);">
+                                    <img src="${member.photo}" style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                            ` : `
+                                <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; border: 1px dashed var(--glass-border);">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1"><circle cx="12" cy="8" r="4"/><path d="M18 21a6 6 0 0 0-12 0"/></svg>
+                                </div>
+                            `}
+                            <div>
+                                <h1 style="font-size: 2.4rem; font-weight: 800; line-height: 1.1;">${member.name}</h1>
+                                <p style="color: var(--gold); font-size: 0.9rem; font-weight: 600; margin-top: 0.25rem;">Athlete Hub ID: ${member.id}</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right; min-width: 150px;">
+                            <span class="member-code-badge" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Elite Athlete Track</span>
+                            ${member.feesDuration ? `<p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">${member.feesDuration}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; margin-bottom: 3.5rem;">
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.5rem; text-align: center;">
+                            <p style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Height</p>
+                            <h3 style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-top: 0.5rem;">${member.height ? `${member.height} cm` : '—'}</h3>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.5rem; text-align: center;">
+                            <p style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Weight</p>
+                            <h3 style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-top: 0.5rem;">${member.weight ? `${member.weight} kg` : '—'}</h3>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.5rem; text-align: center;">
+                            <p style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Calculated BMI</p>
+                            <h3 style="font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-top: 0.5rem;">${member.bmi || '—'}</h3>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.5rem; text-align: center;">
+                            <p style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Physique Goal</p>
+                            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--gold); margin-top: 0.75rem; line-height: 1.3;">${member.goal || '—'}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Workouts -->
+                    <h2 style="font-size: 1.5rem; color: #fff; margin-bottom: 1.25rem; border-left: 4px solid var(--primary); padding-left: 0.75rem;">Custom Training Protocol</h2>
+                    <div style="overflow-x: auto; margin-bottom: 3.5rem; background: rgba(0,0,0,0.15); border-radius: 16px; border: 1px solid var(--glass-border);">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Day Split</th>
+                                    <th>Exercise Routine</th>
+                                    <th>Sets</th>
+                                    <th>Reps Goal</th>
+                                    <th>Target Load</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${member.workout && member.workout.length > 0 ? member.workout.map(w => `
+                                    <tr>
+                                        <td style="font-weight: 600; color: var(--primary);">${w.day || '—'}</td>
+                                        <td style="font-weight: 500;">${w.exercise || '—'}</td>
+                                        <td>${w.sets || '—'}</td>
+                                        <td>${w.reps || '—'}</td>
+                                        <td style="color: var(--gold); font-weight: 600;">${w.load || '—'}</td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Workout routines have not been mapped for this cycle yet.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Nutrition Summary -->
+                    <h2 style="font-size: 1.5rem; color: #fff; margin-bottom: 1.25rem; border-left: 4px solid var(--gold); padding-left: 0.75rem;">Macro Split & Dietary Breakdown</h2>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                        <div style="background: rgba(242, 101, 34, 0.05); border: 1px solid rgba(242, 101, 34, 0.2); border-radius: 12px; padding: 1rem; text-align: center;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Protein</span>
+                            <h4 style="font-size: 1.3rem; font-weight: 700; color: #fff;">${totalProtein}g</h4>
+                        </div>
+                        <div style="background: rgba(223, 186, 107, 0.05); border: 1px solid rgba(223, 186, 107, 0.2); border-radius: 12px; padding: 1rem; text-align: center;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Carbs</span>
+                            <h4 style="font-size: 1.3rem; font-weight: 700; color: #fff;">${totalCarbs}g</h4>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; text-align: center;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Fats</span>
+                            <h4 style="font-size: 1.3rem; font-weight: 700; color: #fff;">${totalFats}g</h4>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem; text-align: center;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Total Calories</span>
+                            <h4 style="font-size: 1.3rem; font-weight: 700; color: var(--primary);">${totalCalories} kcal</h4>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto; background: rgba(0,0,0,0.15); border-radius: 16px; border: 1px solid var(--glass-border);">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Meal Block</th>
+                                    <th>Items & Portions</th>
+                                    <th>Pro</th>
+                                    <th>Carbs</th>
+                                    <th>Fats</th>
+                                    <th>Calorie Load</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${member.diet && member.diet.length > 0 ? member.diet.map(d => `
+                                    <tr>
+                                        <td style="font-weight: 600; color: var(--gold);">${d.name || '—'}</td>
+                                        <td style="font-weight: 500;">${d.foods || '—'}</td>
+                                        <td>${d.protein ? `${d.protein}g` : '—'}</td>
+                                        <td>${d.carbs ? `${d.carbs}g` : '—'}</td>
+                                        <td>${d.fats ? `${d.fats}g` : '—'}</td>
+                                        <td style="font-weight: 600;">${d.calories ? `${d.calories} kcal` : '—'}</td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">Meal configurations have not been assigned.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
         }
     </script>
 </body>
